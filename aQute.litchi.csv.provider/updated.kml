@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.or
+g/2005/Atom">
+	<Folder id="POV">
+	        <name>POV</name>
+	        <Camera id="cam">
+	                <longitude>3.990418910980245</longitude>
+	                <latitude>43.68010518748131</latitude>
+	                <altitude>120</altitude>
+	                <heading>220</heading>
+	                <tilt>80</tilt>
+	                <roll>0</roll>
+	                <gx:altitudeMode>absolute</gx:altitudeMode>
+	        </Camera>
+	</Folder>
+</kml>

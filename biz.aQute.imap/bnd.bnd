@@ -1,0 +1,7 @@
+-buildpath: \
+	com.sun.mail.javax.mail;version='1.6.2',\
+	org.osgi.dto,\
+	aQute.libg,\
+	slf4j.api,\
+	slf4j.simple,\
+	biz.aQute.bndlib;version='5.0.0'

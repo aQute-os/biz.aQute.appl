@@ -1,0 +1,50 @@
+package biz.aQute.discourse;
+
+import org.osgi.dto.DTO;
+
+public class PostTopicResponse extends DTO {
+	public int id;
+	public String name;
+	public String username;
+	public String avatar_template;
+	public String created_at;
+	public String cooked;
+	public int post_number;
+	public int post_type;
+	public String updated_at;
+	public int reply_count;
+	public String reply_to_post_number;
+	public int quote_count;
+	public String avg_time;
+	public int incoming_link_count;
+	public int reads;
+	public int score;
+	public boolean yours;
+	public int topic_id;
+	public String topic_slug;
+	public String display_username;
+	public String primary_group_name;
+	public String primary_group_flair_url;
+	public String primary_group_flair_bg_color;
+	public String primary_group_flair_color;
+	public int version;
+	public boolean can_edit;
+	public boolean can_delete;
+	public boolean can_recover;
+	public boolean can_wiki;
+	public String user_title;
+	public Object actions_summary[];
+	public boolean moderator;
+	public boolean admin;
+	public boolean staff;
+	public int user_id;
+	public int draft_sequence;
+	public boolean hidden;
+	public String hidden_reason_id;
+	public int trust_level;
+	public String deleted_at;
+	public boolean user_deleted;
+	public String edit_reason;
+	public boolean can_view_edit_history;
+	public boolean wiki;
+}

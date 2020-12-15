@@ -1,0 +1,15 @@
+  <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document>
+		<NetworkLink>
+		  <name>Flying</name>
+		  <flyToView>1</flyToView>
+		  <Link>
+		    <href>file:///Ws/aQute.open/aQute.litchi.csv.provider/updated.kml</href>
+		    <refreshMode>onInterval</refreshMode>
+		    <refreshInterval>5</refreshInterval>
+		    <viewRefreshMode>onStop</viewRefreshMode>
+		    <viewRefreshTime>5</viewRefreshTime>
+		  </Link>
+		</NetworkLink> 
+	</Document>
+</kml>

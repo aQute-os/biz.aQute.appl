@@ -1,0 +1,33 @@
+  <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document>
+      <Folder>
+        <Placemark>
+          <name>FlyTo [location=43.793749085847516,3.8360861386986445,403, heading=230.0, tilt=0.0, index=1]</name>
+          <description>FlyTo [location=43.793749085847516,3.8360861386986445,403, heading=230.0, tilt=0.0, index=1]</description>
+          <LineString>
+            <extrude>1</extrude>
+            <altitudeMode>absolute</altitudeMode>
+            <coordinates>3.8360861386986445,43.793749085847516,402.9646911621094
+3.8360861386986445,43.793749085847516,?</coordinates>
+          </LineString>
+        </Placemark>
+      </Folder>
+      <gx:Tour>
+        <gx:Playlist>
+          <gx:FlyTo>
+            <gx:duration>0</gx:duration>
+            <gx:flyToMode>smooth</gx:flyToMode>
+            <Camera>
+              <longitude>3.8360861386986445</longitude>
+              <latitude>43.793749085847516</latitude>
+              <altitude>402.9646911621094</altitude>
+              <heading>230.0</heading>
+              <gx:horizFov>48</gx:horizFov>
+              <tilt>90.0</tilt>
+              <altitudeMode>absolute</altitudeMode>
+            </Camera>
+          </gx:FlyTo>
+        </gx:Playlist>
+      </gx:Tour>
+    </Document>
+  </kml>

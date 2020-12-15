@@ -1,0 +1,125 @@
+  <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document>
+      <Folder>
+        <Placemark>
+          <name>FlyTo [location=47.796276924942795,-4.367840987931459,50, heading=301.0, tilt=-6.718399879830679, index=1]</name>
+          <description>FlyTo [location=47.796276924942795,-4.367840987931459,50, heading=301.0, tilt=-6.718399879830679, index=1]</description>
+          <LineString>
+            <extrude>1</extrude>
+            <altitudeMode>absolute</altitudeMode>
+            <coordinates>-4.367840987931459,47.796276924942795,50.0
+-4.367840987931459,47.796276924942795,?</coordinates>
+          </LineString>
+        </Placemark>
+        <Placemark>
+          <name>FlyTo [location=47.796093092446306,-4.368139290624407,50, heading=307.0, tilt=-6.859758254380435, index=2]</name>
+          <description>FlyTo [location=47.796093092446306,-4.368139290624407,50, heading=307.0, tilt=-6.859758254380435, index=2]</description>
+          <LineString>
+            <extrude>1</extrude>
+            <altitudeMode>absolute</altitudeMode>
+            <coordinates>-4.368139290624407,47.796093092446306,50.0
+-4.368139290624407,47.796093092446306,?</coordinates>
+          </LineString>
+        </Placemark>
+        <Placemark>
+          <name>FlyTo [location=47.79603605860281,-4.368320905892764,50, heading=307.0, tilt=-6.859758254380435, index=2]</name>
+          <description>FlyTo [location=47.79603605860281,-4.368320905892764,50, heading=307.0, tilt=-6.859758254380435, index=2]</description>
+          <LineString>
+            <extrude>1</extrude>
+            <altitudeMode>absolute</altitudeMode>
+            <coordinates>-4.368320905892764,47.79603605860281,50.0
+-4.368320905892764,47.79603605860281,?</coordinates>
+          </LineString>
+        </Placemark>
+        <Placemark>
+          <name>FlyTo [location=47.79608597583458,-4.368507107316502,50, heading=307.0, tilt=-6.859758254380435, index=2]</name>
+          <description>FlyTo [location=47.79608597583458,-4.368507107316502,50, heading=307.0, tilt=-6.859758254380435, index=2]</description>
+          <LineString>
+            <extrude>1</extrude>
+            <altitudeMode>absolute</altitudeMode>
+            <coordinates>-4.368507107316502,47.79608597583458,50.0
+-4.368507107316502,47.79608597583458,?</coordinates>
+          </LineString>
+        </Placemark>
+        <Placemark>
+          <name>FlyTo [location=47.79713382089963,-4.370417424974676,50, heading=306.0, tilt=-13.690620857681274, index=3]</name>
+          <description>FlyTo [location=47.79713382089963,-4.370417424974676,50, heading=306.0, tilt=-13.690620857681274, index=3]</description>
+          <LineString>
+            <extrude>1</extrude>
+            <altitudeMode>absolute</altitudeMode>
+            <coordinates>-4.370417424974676,47.79713382089963,50.0
+-4.370417424974676,47.79713382089963,?</coordinates>
+          </LineString>
+        </Placemark>
+      </Folder>
+      <gx:Tour>
+        <gx:Playlist>
+          <gx:FlyTo>
+            <gx:duration>0</gx:duration>
+            <gx:flyToMode>smooth</gx:flyToMode>
+            <Camera>
+              <longitude>-4.367840987931459</longitude>
+              <latitude>47.796276924942795</latitude>
+              <altitude>50.0</altitude>
+              <heading>301.0</heading>
+              <gx:horizFov>94</gx:horizFov>
+              <tilt>83.28160012016932</tilt>
+              <altitudeMode>absolute</altitudeMode>
+            </Camera>
+          </gx:FlyTo>
+          <gx:FlyTo>
+            <gx:duration>1.5118445332751151</gx:duration>
+            <gx:flyToMode>smooth</gx:flyToMode>
+            <Camera>
+              <longitude>-4.368139290624407</longitude>
+              <latitude>47.796093092446306</latitude>
+              <altitude>50.0</altitude>
+              <heading>307.0</heading>
+              <gx:horizFov>94</gx:horizFov>
+              <tilt>83.14024174561956</tilt>
+              <altitudeMode>absolute</altitudeMode>
+            </Camera>
+          </gx:FlyTo>
+          <gx:FlyTo>
+            <gx:duration>0.7487351072810597</gx:duration>
+            <gx:flyToMode>smooth</gx:flyToMode>
+            <Camera>
+              <longitude>-4.368320905892764</longitude>
+              <latitude>47.79603605860281</latitude>
+              <altitude>50.0</altitude>
+              <heading>307.0</heading>
+              <gx:horizFov>94</gx:horizFov>
+              <tilt>83.14024174561956</tilt>
+              <altitudeMode>absolute</altitudeMode>
+            </Camera>
+          </gx:FlyTo>
+          <gx:FlyTo>
+            <gx:duration>0.7487351072810597</gx:duration>
+            <gx:flyToMode>smooth</gx:flyToMode>
+            <Camera>
+              <longitude>-4.368507107316502</longitude>
+              <latitude>47.79608597583458</latitude>
+              <altitude>50.0</altitude>
+              <heading>307.0</heading>
+              <gx:horizFov>94</gx:horizFov>
+              <tilt>83.14024174561956</tilt>
+              <altitudeMode>absolute</altitudeMode>
+            </Camera>
+          </gx:FlyTo>
+          <gx:FlyTo>
+            <gx:duration>9.210624473319566</gx:duration>
+            <gx:flyToMode>smooth</gx:flyToMode>
+            <Camera>
+              <longitude>-4.370417424974676</longitude>
+              <latitude>47.79713382089963</latitude>
+              <altitude>50.0</altitude>
+              <heading>306.0</heading>
+              <gx:horizFov>94</gx:horizFov>
+              <tilt>76.30937914231873</tilt>
+              <altitudeMode>absolute</altitudeMode>
+            </Camera>
+          </gx:FlyTo>
+        </gx:Playlist>
+      </gx:Tour>
+    </Document>
+  </kml>
