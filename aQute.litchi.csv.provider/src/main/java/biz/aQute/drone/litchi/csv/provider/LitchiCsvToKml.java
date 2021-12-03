@@ -30,6 +30,7 @@ public class LitchiCsvToKml {
 	public boolean markers = true;
 	public int speed = 100;
 	public double maxDuration = Double.MAX_VALUE;
+	public double adjust = Double.MAX_VALUE;
 
 	private boolean first = true;
 	final List<Record> records = new ArrayList<>();
@@ -126,10 +127,16 @@ public class LitchiCsvToKml {
 
 	void waypoint(List<FlyTo> flyTos, Record prevRecord, Record currentRecord, Record nextRecord) {
 		Coord prev, current, next;
+		
+		double height = currentRecord.altitude;
+		if ( height > adjust) {
+			height = (currentRecord.altitude-adjust)*100;
+		}
 
 		current = new Coord(currentRecord.latitude, currentRecord.longitude,
-				currentRecord.altitude + currentRecord.elevation);
+				height + currentRecord.elevation);
 
+		System.out.println(" altitude " + current.height);
 		if (prevRecord == null) {
 			flyTos.add(new FlyTo(current, currentRecord.heading, currentRecord.gimbalpitchangle, currentRecord.index));
 			return;

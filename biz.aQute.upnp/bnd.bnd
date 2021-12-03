@@ -1,0 +1,6 @@
+-buildpath: \
+	org.nanohttpd:nanohttpd,\
+	aQute.libg,\
+	biz.aQute.bndlib, \
+	org.osgi.dto, \
+	slf4j.api, slf4j.simple

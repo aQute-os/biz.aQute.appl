@@ -191,6 +191,9 @@ public class Main extends ReporterAdapter {
 	@Description("Manage the JPM services. Without arguments and options, this will show all the current services. Careful, if --remove is used all services are removed without any parameters.")
 	public interface ServiceOptions extends Options, ModifyService {
 
+		@Description("forece delete if necessary")
+		boolean force();
+
 		@Description("Create a new service on an existing artifact")
 		String create();
 
@@ -483,14 +486,8 @@ public class Main extends ReporterAdapter {
 
 		for (String coordinate : opts._arguments()) {
 			logger.debug("install {}", coordinate);
-			File file = IO.getFile(base, coordinate);
-			if (file.isFile()) {
-				coordinate = file.toURI()
-					.toString();
-				logger.debug("is existing file: {}", coordinate);
-			}
 
-			ArtifactData artifact = jpm.getCandidate(coordinate);
+			ArtifactData artifact = getCandidate(coordinate);
 			logger.debug("candidate {}", artifact);
 			if (artifact == null) {
 				if (jpm.isWildcard(coordinate))
@@ -594,7 +591,7 @@ public class Main extends ReporterAdapter {
 				return;
 			}
 
-			ArtifactData target = jpm.getCandidate(opts.create());
+			ArtifactData target = getCandidate(opts.create());
 			if (target == null) {
 				error("Cannot find candidate for coordinates", opts.create());
 				return;
@@ -651,7 +648,7 @@ public class Main extends ReporterAdapter {
 					coordinates = coordinates.substring(0, n);
 
 				logger.debug("Updating from coordinate: {}", coordinates);
-				ArtifactData target = jpm.getCandidate(coordinates);
+				ArtifactData target = getCandidate(coordinates);
 				if (target == null) {
 					error("No candidates found for %s (%s)", coordinates, opts.staged() ? "staged" : "only masters");
 					return;
@@ -672,6 +669,16 @@ public class Main extends ReporterAdapter {
 				warning("Changes will not affect the currently running process");
 		}
 		Data.details(data, out);
+	}
+
+	private ArtifactData getCandidate(String coordinate) throws Exception {
+		File file = IO.getFile(base, coordinate);
+		if (file.isFile()) {
+			coordinate = file.toURI()
+				.toString();
+			logger.debug("coordinate is existing file: {}", coordinate);
+		}
+		return jpm.getCandidate(coordinate);
 	}
 
 	private boolean updateServiceData(ServiceData data, ModifyService opts) {

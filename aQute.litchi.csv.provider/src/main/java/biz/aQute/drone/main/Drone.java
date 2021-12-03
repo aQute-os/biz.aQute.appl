@@ -74,6 +74,7 @@ public class Drone extends ReporterAdapter {
 			lk.markers = !options.nomarkers();
 			lk.speed = options.speed(lk.speed);
 			lk.maxDuration = options.max(lk.maxDuration);
+			lk.adjust = options.adjustHeight(lk.adjust);
 			
 			lk.convert(r);
 			Tag kml = lk.getKml();

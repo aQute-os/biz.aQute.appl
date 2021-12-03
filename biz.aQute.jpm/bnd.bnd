@@ -51,7 +51,7 @@ Main-Class:                     aQute.jpm.main.Main
 
 -includeresource: service.jar, NOTICE
 
--make: service.jar;type=bnd; recipe="service.bnd"
+-make: service.jar;type=bnd; recipe="bnd/service.bnd"
 
 -includepackage             *;from:=classes
 -sources: false

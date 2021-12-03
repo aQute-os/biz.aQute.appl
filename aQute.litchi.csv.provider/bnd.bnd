@@ -1,5 +1,5 @@
 #
-# AQUTE LITCHI CSV PROVIDER BUNDLE 
+# AQUTE LITCHI CSV PROVIDER BUNDLE
 #
 
 
@@ -12,13 +12,16 @@ JPM-Name            drone
 Main-Class          biz.aQute.drone.main.Drone
 
 -conditionalpackage: *
-	
+
 -buildpath: \
-	osgi.enroute.base.api;version=1.0,\
+	osgi.enroute.base.api;version='1.0',\
 	org.apache.commons.lang3,\
 	com.opencsv,\
-	aQute.libg
-	
+	aQute.libg,\
+    org.osgi.util.promise, \
+    org.osgi.util.function, \
+	biz.aQute.bndlib
+
 -testpath: \
 	osgi.enroute.junit.wrapper;version=4.12
 
@@ -27,6 +30,6 @@ Main-Class          biz.aQute.drone.main.Drone
 
 -runrequires:  \
 	osgi.identity;filter:='(osgi.identity=aQute.litchi.csv.provider)'
-	
+
 -runbundles: \
 	${error;Resolve first}

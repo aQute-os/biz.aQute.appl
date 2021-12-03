@@ -12,9 +12,9 @@ import aQute.libg.reporter.ReporterAdapter;
 import biz.aQute.discourse.DiscourseAPI;
 
 public class DiscourseImport extends ReporterAdapter {
-	
-	final Settings		settings = new Settings("~/.discourse");
-	
+
+	final Settings		settings = new Settings("~/.discourse/settings.json");
+
 	public static void main(String[] args) throws Exception {
 		DiscourseImport di = new DiscourseImport();
 		CommandLine cl = new CommandLine(di);
@@ -24,7 +24,7 @@ public class DiscourseImport extends ReporterAdapter {
 			System.out.println(f.toString());
 			return;
 		}
-		
+
 		List<String> arguments = new ExtList<>(args);
 		String cmd = arguments.remove(0);
 		String execute = cl.execute(di, cmd, arguments);
@@ -32,13 +32,13 @@ public class DiscourseImport extends ReporterAdapter {
 			System.out.println(execute);
 		}
 	}
-	
+
 	interface Discourse extends Options {
 		URI uri();
 		String user(String deflt);
 		String key();
 	}
-	
+
 	public void _categories(Discourse discourse) {
 		DiscourseAPI da = getDiscourseAPI(discourse);
 	}
@@ -47,7 +47,8 @@ public class DiscourseImport extends ReporterAdapter {
 		if ( discourse.uri() == null)
 		// TODO Auto-generated method stub
 		return null;
+		return null;
 	}
-	
+
 
 }

@@ -915,6 +915,7 @@ public class JustAnotherPackageManager {
 
 	public ArtifactData getCandidateAsync(String arg) throws Exception {
 		logger.debug("coordinate {}", arg);
+
 		if (isUrl(arg))
 			try {
 				ArtifactData data = putAsync(new URI(arg));

@@ -21,13 +21,13 @@ public class ServiceTest extends TestCase {
 		MainNoFail jpm = new MainNoFail();
 
 		jpm.run(new String[] {
-			"-etu", "service", "--create", "target/test-classes/biz.aQute.jpm.daemon.jar", "dm"
+			"-etu", "service", "-f", "--create", "src/test/resources/biz.aQute.jpm.daemon.jar", "dm"
 		});
 
 		@SuppressWarnings("unused")
 		Service service = jpm.jpm.getService("dm");
 
-		//assertNotNull(service);
+		// assertNotNull(service);
 	}
 
 	private void removeTestService() throws Exception {
