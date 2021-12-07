@@ -4,6 +4,7 @@ package aQute.jpm.platform;
  * http://support.microsoft.com/kb/814596
  */
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -24,15 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import aQute.bnd.osgi.Instructions;
-import aQute.jpm.lib.ArtifactData;
-import aQute.jpm.lib.CommandData;
-import aQute.jpm.lib.JVM;
-import aQute.jpm.lib.ServiceData;
+import aQute.jpm.api.CommandData;
+import aQute.jpm.api.JVM;
 import aQute.lib.getopt.Arguments;
 import aQute.lib.getopt.Description;
 import aQute.lib.getopt.Options;
 import aQute.lib.io.IO;
 import aQute.lib.strings.Strings;
+import biz.aQute.result.Result;
 
 /**
  * The Windows platform uses an open source library
@@ -45,7 +45,7 @@ import aQute.lib.strings.Strings;
  * <p>
  * TODO services (fortunately, winrun4j has extensive support)
  */
-public class Windows extends Platform {
+public class Windows extends PlatformImpl {
 	private static final String	JRE_KEY_PREFIX		= "Software\\JavaSoft\\Java Runtime Environment";
 	private static final String	JDK_KEY_PREFIX		= "Software\\JavaSoft\\Java Development Kit";
 	private static final String	JDK_11_KEY_PREFIX	= "Software\\JavaSoft\\JDK";
@@ -142,10 +142,13 @@ public class Windows extends Platform {
 			//
 			// Add all the calculated dependencies
 			//
-			for (byte[] dependency : data.dependencies) {
-				ArtifactData d = jpm.get(dependency);
-				pw.printf("%s%s", del, d.file);
-				del = ",";
+			for (String spec : data.dependencies) {
+				Result<File> artifact = jpm.getArtifact(spec);
+				if (artifact.isErr())
+					throw new FileNotFoundException(
+						"Could not locate dependency " + spec + " " + artifact.getMessage());
+				pw.printf("%s%s", del, artifact.get());
+				del = ";";
 			}
 
 			pw.printf("%n");
@@ -179,7 +182,7 @@ public class Windows extends Platform {
 	}
 
 	@Override
-	public String getConfigFile() throws Exception {
+	public String getConfigFile() {
 		return System.getProperty("user.home") + "/.jpm/settings.json";
 	}
 
@@ -204,6 +207,7 @@ public class Windows extends Platform {
 	private File getMisc() {
 		if (misc == null) {
 			misc = new File(jpm.getHomeDir(), "misc");
+			misc.mkdirs();
 		}
 		return misc;
 	}
@@ -217,46 +221,6 @@ public class Windows extends Platform {
 		return new File(jpm.getBinDir(), data.name + ".exe").getAbsolutePath();
 	}
 
-	/**
-	 * Create a new service
-	 */
-	@Override
-	public String createService(ServiceData data, Map<String, String> map, boolean force, String... extra)
-		throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String deleteService(ServiceData data) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int launchService(ServiceData data) throws Exception {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public void installDaemon(boolean user) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void uninstallDaemon(boolean user) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void chown(String user, boolean recursive, File file) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
 	@Override
 	public String user() throws Exception {
 		// TODO Auto-generated method stub
@@ -266,7 +230,7 @@ public class Windows extends Platform {
 	@Override
 	public String toString() {
 		try {
-			return "Windows";
+			return "Windows x64=" + IS64;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

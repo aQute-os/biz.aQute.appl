@@ -1,7 +1,6 @@
 package org.slf4j.impl;
 
 import java.lang.reflect.Array;
-import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,7 +16,7 @@ import aQute.service.reporter.Reporter;
 
 public class StaticLoggerBinder implements LoggerFactoryBinder, ILoggerFactory {
 
-	public static String					REQUESTED_API_VERSION	= "1.6.99";					// !final
+	public static String					REQUESTED_API_VERSION	= "1.7.30";					// !final
 	public final Map<Glob, Level>			levels					= new LinkedHashMap<>();
 	public Reporter							reporter;
 
@@ -46,9 +45,13 @@ public class StaticLoggerBinder implements LoggerFactoryBinder, ILoggerFactory {
 	}
 
 	@Override
-	public Logger getLogger(String name) {
+	public Logger getLogger(String xname) {
 		return new MarkerIgnoringBase() {
 			private static final long serialVersionUID = 1L;
+
+			{
+				this.name = xname;
+			}
 
 			@Override
 			public String getName() {
@@ -228,14 +231,7 @@ public class StaticLoggerBinder implements LoggerFactoryBinder, ILoggerFactory {
 					case TRACE :
 					case DEBUG :
 					case INFO : {
-						String msg;
-						try {
-							msg = MessageFormat.format(format, arguments);
-						} catch (Exception e) {
-							e.printStackTrace();
-							msg = format + " " + fixup(arguments);
-						}
-						reporter.trace("%s", msg);
+						reporter.trace(toFormat(format), arguments);
 					}
 						break;
 
@@ -245,12 +241,6 @@ public class StaticLoggerBinder implements LoggerFactoryBinder, ILoggerFactory {
 					case WARN :
 						reporter.warning(toFormat(format), arguments);
 						break;
-				}
-
-				if (level.ordinal() < Level.WARN.ordinal()) {
-					reporter.trace("%s");
-				} else {
-					reporter.trace("%s");
 				}
 			}
 
@@ -302,6 +292,10 @@ public class StaticLoggerBinder implements LoggerFactoryBinder, ILoggerFactory {
 			return sb;
 		}
 		return object;
+	}
+
+	public void add(String string, Level level) {
+		levels.put(new Glob("*"), level);
 	}
 
 }

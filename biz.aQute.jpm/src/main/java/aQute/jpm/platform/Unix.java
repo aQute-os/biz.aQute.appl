@@ -2,28 +2,29 @@ package aQute.jpm.platform;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Formatter;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import aQute.jpm.lib.CommandData;
-import aQute.jpm.lib.ServiceData;
+import aQute.jpm.api.CommandData;
 import aQute.lib.getopt.Arguments;
 import aQute.lib.getopt.Description;
 import aQute.lib.getopt.Options;
 import aQute.lib.io.IO;
 import aQute.lib.strings.Strings;
-import aQute.libg.command.Command;
 import aQute.libg.glob.Glob;
 
-public abstract class Unix extends Platform {
+public abstract class Unix extends PlatformImpl {
 	private final static Logger	logger		= LoggerFactory.getLogger(Unix.class);
 
 	public static String		JPM_GLOBAL	= "/var/jpm";
@@ -55,11 +56,71 @@ public abstract class Unix extends Platform {
 			data.bin = f.getAbsolutePath();
 		}
 
-		if (!force && f.exists())
-			return "Command already exists " + data.bin;
+		if (f.exists())
+			if (!force)
+				return "Command already exists " + data.bin;
+			else
+				delete(f);
 
-		process("unix/command.sh", data, data.bin, map, extra);
+		String java = data.jvmLocation;
+		if (java == null) {
+			java = IO.getJavaExecutablePath(data.windows ? "javaw" : "java");
+		}
+
+		try (Formatter frm = new Formatter()) {
+			frm.format("#!/bin/sh\n");
+			frm.format("exec");
+
+			frm.format(" %s", data.jvmLocation);
+
+			frm.format(" -Dpid=$$");
+
+			if (data.jvmArgs != null) {
+				frm.format(" %s", data.jvmArgs);
+			}
+
+			frm.format(" -cp");
+
+			assert !data.dependencies.isEmpty();
+
+			String del = " ";
+			for (String dep : data.dependencies) {
+				frm.format("%s%s", del, dep);
+				del = ":";
+			}
+
+			frm.format(" %s \"$@\"\n", data.main);
+
+			String script = frm.toString();
+			IO.store(script, f);
+
+			makeExecutable(f);
+			logger.debug(script);
+		}
+
 		return null;
+	}
+
+	private void makeExecutable(File f) throws IOException {
+		if (f.isFile()) {
+			Set<PosixFilePermission> attrs = new HashSet<>();
+			attrs.add(PosixFilePermission.OWNER_EXECUTE);
+			attrs.add(PosixFilePermission.OWNER_READ);
+			attrs.add(PosixFilePermission.OTHERS_READ);
+			attrs.add(PosixFilePermission.OTHERS_EXECUTE);
+			attrs.add(PosixFilePermission.GROUP_READ);
+			attrs.add(PosixFilePermission.GROUP_EXECUTE);
+			Files.setPosixFilePermissions(f.toPath(), attrs);
+		}
+	}
+
+	private void delete(File f) throws IOException {
+		if (f.isFile()) {
+			Set<PosixFilePermission> attrs = new HashSet<>();
+			attrs.add(PosixFilePermission.OWNER_WRITE);
+			Files.setPosixFilePermissions(f.toPath(), attrs);
+			IO.delete(f);
+		}
 	}
 
 	@Override
@@ -68,122 +129,8 @@ public abstract class Unix extends Platform {
 		IO.deleteWithException(executable);
 	}
 
-	@Override
-	public String createService(ServiceData data, Map<String, String> map, boolean force, String... extra)
-		throws Exception {
-		File initd = getInitd(data);
-		File launch = getLaunch(data);
-
-		if (!force) {
-			if (initd.exists())
-				return "Service already exists in " + initd + ", use --force to override";
-
-			if (launch.exists())
-				return "Service launch file already exists in " + launch + ", use --force to override";
-		}
-
-		process("unix/launch.sh", data, launch.getAbsolutePath(), map, add(extra, data.serviceLib));
-		process("unix/initd.sh", data, initd.getAbsolutePath(), map, add(extra, data.serviceLib));
-		return null;
-	}
-
-	@Override
-	public File getInitd(ServiceData data) {
-		return new File("/etc/init.d/" + data.name);
-	}
-
-	protected File getLaunch(ServiceData data) {
-		return new File(data.sdir, "launch.sh");
-	}
-
 	protected String getExecutable(CommandData data) {
 		return new File(jpm.getBinDir(), data.name).getAbsolutePath();
-	}
-
-	@Override
-	public String deleteService(ServiceData data) {
-		if (!getInitd(data).delete())
-			return "Cannot delete " + getInitd(data);
-
-		File f = new File(getExecutable(data));
-		if (!f.delete())
-			return "Cannot delete " + getExecutable(data);
-
-		System.out.println("Removed service data ");
-
-		return null;
-	}
-
-	@Override
-	public int launchService(ServiceData data) throws Exception {
-		File launch = getLaunch(data);
-		Process p = Runtime.getRuntime()
-			.exec(launch.getAbsolutePath(), null, new File(data.work));
-		return p.waitFor();
-	}
-
-	String			DAEMON			= "\n### JPM BEGIN ###\n" + "jpm daemon >" + JPM_GLOBAL + "/daemon.log 2>>"
-		+ JPM_GLOBAL + "/daemon.log &\n### JPM END ###\n";
-	static Pattern	DAEMON_PATTERN	= Pattern.compile("\n### JPM BEGIN ###\n.*\n### JPM END ###\n", Pattern.MULTILINE);
-
-	@Override
-	public void installDaemon(boolean user) throws Exception {
-		if (user)
-			throw new IllegalArgumentException("This Unix platform does not support user based agents");
-
-		File rclocal = new File("/etc/rc.d/rc.local");
-		if (!rclocal.isFile())
-			rclocal = new File("/etc/rc.local");
-
-		if (!rclocal.isFile())
-			throw new IllegalArgumentException("Cannot find rc.local in either /etc or /etc/rc.d. Unknown unix");
-
-		String s = IO.collect(rclocal);
-		if (s.contains(DAEMON))
-			return;
-
-		// TODO handle exit 0 at end of file
-
-		s += DAEMON;
-		IO.store(s, rclocal);
-
-	}
-
-	@Override
-	public void uninstallDaemon(boolean user) throws Exception {
-		if (user)
-			return;
-
-		File rclocal = new File("/etc/rc.d/rc.local");
-		if (!rclocal.isFile())
-			rclocal = new File("/etc/rc.local");
-
-		if (!rclocal.isFile())
-			return;
-
-		String s = IO.collect(rclocal);
-
-		Matcher m = DAEMON_PATTERN.matcher(s);
-		s = m.replaceAll("");
-		s += DAEMON;
-		IO.store(s, rclocal);
-	}
-
-	@Override
-	public void chown(String user, boolean recursive, File file) throws Exception {
-		String cmd = "chown " + (recursive ? " -R " : "") + user + " " + file.getAbsolutePath();
-		if ("root".equals(user))
-			return;
-
-		if ("0".equals(user))
-			return;
-
-		Command chown = new Command(cmd);
-		StringBuilder sb = new StringBuilder();
-
-		int n = chown.execute(sb, sb);
-		if (n != 0)
-			throw new IllegalArgumentException("Changing ownership for " + file + " fails: " + n + " : " + sb);
 	}
 
 	@Override
@@ -201,13 +148,6 @@ public abstract class Unix extends Platform {
 		// " : " + sb);
 		//
 		// return sb.toString().trim();
-	}
-
-	@Override
-	protected void process(String resource, CommandData data, String file, Map<String, String> map, String... extra)
-		throws Exception {
-		super.process(resource, data, file, map, extra);
-		run("chmod a+x " + file);
 	}
 
 	@Override
@@ -315,4 +255,10 @@ public abstract class Unix extends Platform {
 		}
 		IO.store(s, file);
 	}
+
+	@Override
+	public String getConfigFile() {
+		return "~/.jpm/settings.json";
+	}
+
 }

@@ -13,14 +13,7 @@ Bundle-Developers: \
         organization=aQute; \
         organizationUrl=http://bndtools.org; \
         roles="architect,developer"; \
-        timezone=1, \
-    gamerson; \
-        email=gregory.amerson@liferay.com; \
-        name="Gregory Amerson"; \
-        organization=Liferay; \
-        organizationUrl=https://www.liferay.com; \
-        roles="developer"; \
-        timezone=-5
+        timezone=1
 
 Bundle-DocURL:                  http://bndtools.org
 Bundle-License:                 http://www.opensource.org/licenses/apache2.0.php; \
@@ -33,10 +26,14 @@ JPM-Command:                    jpm
 Main-Class:                     aQute.jpm.main.Main
 
 -buildpath: \
-    aQute.libg, \
-    biz.aQute.bndlib, \
-    slf4j.api, \
-    jar/WinRun4J-0.4.5.jar;version=file
+	aQute.libg,\
+	biz.aQute.bndlib,\
+	slf4j.api,\
+	jar/WinRun4J-0.4.5.jar;version=file,\
+	biz.aQute.repository;version=latest,\
+	org.osgi.dto,\
+	org.osgi.framework,\
+	biz.aQute.api.result
 
 -testpath: \
     osgi.enroute.junit.wrapper, \
@@ -44,8 +41,10 @@ Main-Class:                     aQute.jpm.main.Main
     
 -conditionalpackage: \
     aQute.*,\
+    biz.aQute.*, \
     org.boris.winrun4j.*,\
-    org.slf4j.*
+    org.slf4j.*, \
+    org.osgi.*
 
 -digests: MD5, SHA1
 
