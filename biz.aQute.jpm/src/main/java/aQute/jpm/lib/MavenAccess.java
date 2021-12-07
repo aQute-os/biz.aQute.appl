@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import aQute.bnd.http.HttpClient;
-import aQute.bnd.service.result.Result;
 import aQute.lib.io.IO;
 import aQute.maven.api.Archive;
 import aQute.maven.api.Program;
@@ -14,6 +13,7 @@ import aQute.maven.api.Revision;
 import aQute.maven.provider.MavenBackingRepository;
 import aQute.maven.provider.MavenRepository;
 import aQute.service.reporter.Reporter;
+import biz.aQute.result.Result;
 
 class MavenAccess {
 
@@ -30,7 +30,7 @@ class MavenAccess {
 			.executor(), reporter);
 	}
 
-	Result<List<String>, String> list(String spec) throws Exception {
+	Result<List<String>> list(String spec) throws Exception {
 		if (Archive.isValid(spec)) {
 			Archive a = new Archive(spec);
 			return Result.ok(Collections.singletonList(a.toString()));
@@ -41,6 +41,6 @@ class MavenAccess {
 				.map(Object::toString)
 				.collect(Collectors.toList()));
 		}
-		return Result.err("not a valid format: must be either an archive or program: %s", spec);
+		return Result.error("not a valid format: must be either an archive or program: %s", spec);
 	}
 }

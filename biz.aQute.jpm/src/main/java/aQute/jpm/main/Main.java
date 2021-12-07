@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.impl.Level;
 import org.slf4j.impl.StaticLoggerBinder;
 
+import aQute.bnd.exceptions.Exceptions;
 import aQute.bnd.osgi.Constants;
 import aQute.bnd.osgi.Instructions;
 import aQute.jpm.api.CommandData;
@@ -37,7 +38,6 @@ import aQute.jpm.lib.JustAnotherPackageManager;
 import aQute.jpm.platform.PlatformImpl;
 import aQute.lib.base64.Base64;
 import aQute.lib.collections.ExtList;
-import aQute.lib.exceptions.Exceptions;
 import aQute.lib.getopt.Arguments;
 import aQute.lib.getopt.CommandLine;
 import aQute.lib.getopt.Description;
