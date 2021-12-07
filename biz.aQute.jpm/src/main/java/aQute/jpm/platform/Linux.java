@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import aQute.jpm.lib.JVM;
+import aQute.jpm.api.JVM;
 import aQute.lib.io.IO;
 
 class Linux extends Unix {
@@ -102,7 +102,7 @@ class Linux extends Unix {
 	}
 
 	@Override
-	public JVM getJVM(File vmdir) throws Exception {
+	public JVM getJVM(File vmdir) {
 		if (!vmdir.isDirectory()) {
 			return null;
 		}
@@ -121,8 +121,8 @@ class Linux extends Unix {
 
 		JVM jvm = new JVM();
 		jvm.name = vmdir.getName();
-		jvm.path = vmdir.getCanonicalPath();
-		jvm.platformRoot = vmdir.getCanonicalPath();
+		jvm.path = vmdir.getAbsolutePath();
+		jvm.platformRoot = vmdir.getAbsolutePath();
 		jvm.version = getVersion(vmdir);
 		jvm.platformVersion = jvm.version;
 

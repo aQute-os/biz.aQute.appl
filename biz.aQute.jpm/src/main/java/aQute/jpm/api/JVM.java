@@ -1,4 +1,4 @@
-package aQute.jpm.lib;
+package aQute.jpm.api;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -7,7 +7,7 @@ import java.util.List;
 import aQute.struct.struct;
 
 public class JVM extends struct {
-	public static Comparator<JVM>	comparator		= (a, b) -> a.version.compareTo(b.version);
+	public static Comparator<JVM>	comparator		= (a, b) -> b.version.compareTo(a.version);
 
 	public String					platformVersion;
 	public String					path;
