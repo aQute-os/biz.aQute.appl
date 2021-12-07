@@ -39,6 +39,7 @@ import org.osgi.util.promise.Promise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import aQute.bnd.exceptions.Exceptions;
 import aQute.bnd.header.Attrs;
 import aQute.bnd.header.OSGiHeader;
 import aQute.bnd.header.Parameters;
@@ -51,7 +52,6 @@ import aQute.jpm.platform.PlatformImpl;
 import aQute.lib.base64.Base64;
 import aQute.lib.collections.ExtList;
 import aQute.lib.converter.Converter;
-import aQute.lib.exceptions.Exceptions;
 import aQute.lib.io.IO;
 import aQute.lib.json.JSONCodec;
 import aQute.lib.justif.Justif;

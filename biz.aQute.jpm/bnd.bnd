@@ -33,7 +33,8 @@ Main-Class:                     aQute.jpm.main.Main
 	biz.aQute.repository;version=latest,\
 	org.osgi.dto,\
 	org.osgi.framework,\
-	biz.aQute.api.result
+	biz.aQute.api.result,\
+	org.osgi.util.promise
 
 -testpath: \
     osgi.enroute.junit.wrapper, \
