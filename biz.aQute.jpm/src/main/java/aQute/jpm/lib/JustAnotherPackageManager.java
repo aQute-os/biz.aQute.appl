@@ -248,11 +248,6 @@ public class JustAnotherPackageManager implements JPM {
 				map.put("java.security.manager", "aQute.jpm.service.TraceSecurityManager");
 				logger.debug("tracing");
 			}
-			JVM jvm = getVM(data.jvmVersionRange);
-			if (jvm != null) {
-				data.jvmLocation = jvm.path + (data.windows ? "/bin/javaw" : "/bin/java");
-			}
-
 			String s = platform.createCommand(data, map, force);
 			if (s == null)
 				storeData(new File(commandDir, data.name), data);
@@ -369,7 +364,8 @@ public class JustAnotherPackageManager implements JPM {
 
 			data.dependencies.add(cached.getAbsolutePath());
 
-			doPom(coordinate).forEach(f -> data.dependencies.add(f.getAbsolutePath()));
+			if (isMaven(coordinate))
+				doPom(coordinate).forEach(f -> data.dependencies.add(f.getAbsolutePath()));
 
 			Parameters command = OSGiHeader.parseHeader(main.getValue("JPM-Command"));
 
@@ -400,6 +396,14 @@ public class JustAnotherPackageManager implements JPM {
 			}
 			return Result.ok(data);
 		}
+	}
+
+	final static String		TOKEN_S	= "[\\p{javaJavaIdentifierPart}._-]+";
+	final static Pattern	GAV_P	= Pattern.compile("(" + TOKEN_S + ":){1,4}" + TOKEN_S);
+
+	private boolean isMaven(String coordinate) {
+		return GAV_P.matcher(coordinate)
+			.matches();
 	}
 
 	@Override
@@ -466,12 +470,9 @@ public class JustAnotherPackageManager implements JPM {
 				File f = new File(dir);
 				JVM jvm = getPlatform().getJVM(f);
 				if (jvm == null) {
-					jvm = new JVM();
-					jvm.path = f.getCanonicalPath();
-					jvm.name = "Not a valid VM";
-					jvm.platformVersion = jvm.vendor = jvm.version = "";
-				}
-				set.add(jvm);
+					logger.debug("extra VM not usable: %s", elist);
+				} else
+					set.add(jvm);
 			}
 		}
 		getPlatform().getVMs(set);
@@ -484,7 +485,9 @@ public class JustAnotherPackageManager implements JPM {
 	}
 
 	@Override
-	public void init() {}
+	public void init() throws Exception {
+		platform.init();
+	}
 
 	@Override
 	public List<String> search(String spec) {

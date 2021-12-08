@@ -62,16 +62,13 @@ public abstract class Unix extends PlatformImpl {
 			else
 				delete(f);
 
-		String java = data.jvmLocation;
-		if (java == null) {
-			java = IO.getJavaExecutablePath(data.windows ? "javaw" : "java");
-		}
+		String java = getJava(data.jvmVersionRange, data.windows);
 
 		try (Formatter frm = new Formatter()) {
 			frm.format("#!/bin/sh\n");
 			frm.format("exec");
 
-			frm.format(" %s", data.jvmLocation);
+			frm.format(" %s", java);
 
 			frm.format(" -Dpid=$$");
 

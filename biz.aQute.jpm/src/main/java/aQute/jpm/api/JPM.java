@@ -78,6 +78,6 @@ public interface JPM extends Closeable {
 	 */
 	Result<List<String>> getRevisions(String program);
 
-	JVM getVM(String jvmlocation) throws Exception;
+	JVM getVM(String jpmVersionRange) throws Exception;
 
 }

@@ -133,8 +133,7 @@ class MacOS extends Unix {
 
 			JVM jvm = new JVM();
 			jvm.name = vmdir.getName();
-			jvm.path = home.getCanonicalPath();
-			jvm.platformRoot = vmdir.getCanonicalPath();
+			jvm.javahome = vmdir.getCanonicalPath();
 			jvm.version = getSiblingValue(versionNode);
 			jvm.platformVersion = getSiblingValue(platformVersionNode);
 			jvm.vendor = getSiblingValue(vendorNode);
@@ -155,8 +154,7 @@ class MacOS extends Unix {
 
 				JVM jvm = new JVM();
 				jvm.name = vm.getName();
-				jvm.path = vm.getCanonicalPath();
-				jvm.platformRoot = vm.getCanonicalPath();
+				jvm.javahome = vm.getCanonicalPath();
 
 				Manifest manifest = jarFile.getManifest();
 				Attributes attrs = manifest.getMainAttributes();

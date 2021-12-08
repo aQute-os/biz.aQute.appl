@@ -121,8 +121,7 @@ class Linux extends Unix {
 
 		JVM jvm = new JVM();
 		jvm.name = vmdir.getName();
-		jvm.path = vmdir.getAbsolutePath();
-		jvm.platformRoot = vmdir.getAbsolutePath();
+		jvm.javahome = vmdir.getAbsolutePath();
 		jvm.version = getVersion(vmdir);
 		jvm.platformVersion = jvm.version;
 
