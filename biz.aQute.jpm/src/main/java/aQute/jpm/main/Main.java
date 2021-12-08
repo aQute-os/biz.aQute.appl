@@ -22,6 +22,7 @@ import java.util.SortedSet;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +30,6 @@ import org.slf4j.impl.Level;
 import org.slf4j.impl.StaticLoggerBinder;
 
 import aQute.bnd.exceptions.Exceptions;
-import aQute.bnd.osgi.Constants;
-import aQute.bnd.osgi.Instructions;
 import aQute.jpm.api.CommandData;
 import aQute.jpm.api.JPM;
 import aQute.jpm.api.JVM;
@@ -490,9 +489,9 @@ public class Main extends ReporterAdapter {
 	public void _command(CommandOptions opts) throws Exception {
 
 		if (opts.remove()) {
-			Instructions instrs = new Instructions(opts._arguments());
+			List<String> args = opts._arguments();
 			for (CommandData cmd : jpm.getCommands()) {
-				if (instrs.matches(cmd.name)) {
+				if (args.contains(cmd.name)) {
 					jpm.deleteCommand(cmd.name);
 				}
 			}
@@ -537,7 +536,7 @@ public class Main extends ReporterAdapter {
 		f.format("Install time\t1%s%n", new Date(command.time));
 		f.format("Path\t1%s%n", command.bin);
 		f.format("Installed\t1%s%n", command.installed);
-		f.format("JRE\t1%s%n", Strings.display(command.jvmLocation, "<default>"));
+		f.format("JRE\t1%s%n", Strings.display(command.jvmVersionRange, "<default>"));
 		f.format("Trace\t1%s%n", command.trace ? "On" : "Off");
 		list(f, "Dependencies", command.dependencies);
 
@@ -717,7 +716,7 @@ public class Main extends ReporterAdapter {
 		SortedSet<JVM> vms = jpm.getVMs();
 
 		for (JVM jvm : vms) {
-			out.printf("%-30s %-5s %-20s %-30s %s\n", jvm.name, jvm.platformVersion, jvm.version, jvm.vendor, jvm.path);
+			out.printf("%-30s %-5s %-20s %-10s %s\n", jvm.name, jvm.version, jvm.vendor, jvm.os_arch, jvm.javahome);
 		}
 
 	}
@@ -750,11 +749,11 @@ public class Main extends ReporterAdapter {
 			logger.debug("found manifest {}", url);
 			Manifest m = new Manifest(url.openStream());
 			String name = m.getMainAttributes()
-				.getValue(Constants.BUNDLE_SYMBOLICNAME);
+				.getValue("Bundle-SymbolicName");
 			if (name != null && name.trim()
 				.equals("biz.aQute.jpm")) {
 				out.println(m.getMainAttributes()
-					.getValue(Constants.BUNDLE_VERSION));
+					.getValue("Bundle-Version"));
 				return;
 			}
 		}
@@ -822,8 +821,11 @@ public class Main extends ReporterAdapter {
 					if (m.matches()) {
 						logger.debug("matches {} {} {}", s, m.group(1), m.group(2));
 						String key = m.group(1);
-						Instructions instr = new Instructions(key);
-						Collection<String> select = instr.select(settings.keySet(), true);
+						Glob instr = key == null ? Glob.ALL : new Glob(key);
+						List<String> select = settings.keySet()
+							.stream()
+							.filter(k -> instr.matches(k))
+							.collect(Collectors.toList());
 
 						String value = m.group(2);
 						if (value == null) {

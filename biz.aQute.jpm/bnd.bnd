@@ -34,7 +34,9 @@ Main-Class:                     aQute.jpm.main.Main
 	org.osgi.dto,\
 	org.osgi.framework,\
 	biz.aQute.api.result,\
-	org.osgi.util.promise
+	org.osgi.util.promise,\
+	org.osgi.util.function,\
+	biz.aQute.bnd.util;version=latest
 
 -testpath: \
     osgi.enroute.junit.wrapper, \
@@ -49,10 +51,11 @@ Main-Class:                     aQute.jpm.main.Main
 
 -digests: MD5, SHA1
 
--includeresource: service.jar, NOTICE
+-includeresource: NOTICE
 
 -make: service.jar;type=bnd; recipe="bnd/service.bnd"
 
 -includepackage             *;from:=classes
 -sources: false
 
+Import-Package: *

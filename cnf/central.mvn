@@ -1,6 +1,7 @@
 com.sun.mail:javax.mail:1.6.2
 
 biz.aQute.bnd:aQute.libg:6.1.0
+biz.aQute.bnd:biz.aQute.bnd.util:6.0.0
 biz.aQute.bnd:biz.aQute.bnd.runtime.snapshot:6.0.0
 biz.aQute.bnd:biz.aQute.bndlib:6.1.0
 biz.aQute.bnd:biz.aQute.repository:6.1.0

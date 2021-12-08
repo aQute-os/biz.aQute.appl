@@ -72,6 +72,7 @@ import aQute.service.reporter.Reporter;
 public class InstallCert {
 	private final static Logger logger = LoggerFactory.getLogger(InstallCert.class);
 
+	@SuppressWarnings("deprecation")
 	public static void installCert(Reporter reporter, String host, int port, String passphrase, File file,
 		boolean install) throws Exception {
 
@@ -145,6 +146,7 @@ public class InstallCert {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private static KeyStore getKeystore(String passphrase, File file)
 		throws FileNotFoundException, KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
 		file = getCacertFile(file);

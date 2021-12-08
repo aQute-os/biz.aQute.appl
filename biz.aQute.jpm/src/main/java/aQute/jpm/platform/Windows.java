@@ -6,19 +6,18 @@ package aQute.jpm.platform;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.boris.winrun4j.RegistryKey;
 import org.slf4j.Logger;
@@ -32,6 +31,7 @@ import aQute.lib.getopt.Description;
 import aQute.lib.getopt.Options;
 import aQute.lib.io.IO;
 import aQute.lib.strings.Strings;
+import aQute.libg.command.Command;
 import biz.aQute.result.Result;
 
 /**
@@ -46,15 +46,12 @@ import biz.aQute.result.Result;
  * TODO services (fortunately, winrun4j has extensive support)
  */
 public class Windows extends PlatformImpl {
-	private static final String	JRE_KEY_PREFIX		= "Software\\JavaSoft\\Java Runtime Environment";
-	private static final String	JDK_KEY_PREFIX		= "Software\\JavaSoft\\Java Development Kit";
-	private static final String	JDK_11_KEY_PREFIX	= "Software\\JavaSoft\\JDK";
-	private final static Logger	logger				= LoggerFactory.getLogger(Windows.class);
-	static boolean				IS64				= System.getProperty("os.arch")
+	final static Pattern	JAVA_HOME	= Pattern.compile("JavaHome\\s+REG_SZ\\s+(?<path>[^\n\r]+)");
+	final static Logger		logger		= LoggerFactory.getLogger(Windows.class);
+	final static boolean	IS64		= System.getProperty("os.arch")
 		.contains("64");
 
-	static File					javahome;
-	private File				misc;
+	File					misc;
 
 	/**
 	 * The default global directory.
@@ -147,7 +144,7 @@ public class Windows extends PlatformImpl {
 				if (artifact.isErr())
 					throw new FileNotFoundException(
 						"Could not locate dependency " + spec + " " + artifact.getMessage());
-				pw.printf("%s%s", del, artifact.get());
+				pw.printf("%s%s", del, artifact.unwrap());
 				del = ";";
 			}
 
@@ -162,22 +159,29 @@ public class Windows extends PlatformImpl {
 					pw.printf("vmarg.%d=%s%n", i + 1, parts[i]);
 			}
 
-			if (data.jvmLocation != null && data.jvmLocation.length() != 0) {
-				// find the jvm.dll to set as vm.location
-
-				Files.walk(Paths.get(data.jvmLocation))
-					.filter(path -> {
-						String fileName = path.getFileName()
-							.toString();
-
-						return fileName.equals("jvm.dll");
-					})
-					.map(Path::toString)
-					.findFirst()
-					.ifPresent(path -> pw.printf("vm.location=%s%n", path));
+			JVM jvm = jpm.getVM(data.jvmVersionRange);
+			File jvm_dll = find(new File(jvm.javahome), "jvm.dll");
+			if (jvm_dll != null) {
+				pw.printf("vm.location=%s%n", jvm_dll.getAbsolutePath());
 			}
+
 		}
 		logger.debug("Ini content {}", IO.collect(ini, defaultCharset));
+		return null;
+	}
+
+	private File find(File file, String name) {
+		for (File sub : file.listFiles()) {
+			if (sub.isFile()) {
+				if (sub.getName()
+					.equals(name))
+					return sub;
+			} else {
+				File result = find(sub, name);
+				if (result != null)
+					return result;
+			}
+		}
 		return null;
 	}
 
@@ -345,76 +349,28 @@ public class Windows extends PlatformImpl {
 
 	@Override
 	public void getVMs(Collection<JVM> vms) throws Exception {
-		findJavaHomes(vms, JRE_KEY_PREFIX);
-		findJavaHomes(vms, JDK_KEY_PREFIX);
-		findJavaHomes(vms, JDK_11_KEY_PREFIX);
-	}
+		Command c = new Command();
+		c.add("REG");
+		c.add("QUERY");
+		c.add("HKEY_LOCAL_MACHINE\\SOFTWARE\\JavaSoft");
+		c.add("/s");
+		StringBuilder sb = new StringBuilder();
+		c.execute(sb, sb);
 
-	private void findJavaHomes(Collection<JVM> vms, String prefix) throws Exception {
-		List<String> subKeys = WinRegistry.readStringSubKeys(WinRegistry.HKEY_LOCAL_MACHINE, prefix);
-
-		if (subKeys != null) {
-			subKeys.stream()
-				.map(subKey -> {
-					try {
-						return WinRegistry.readString(WinRegistry.HKEY_LOCAL_MACHINE, prefix + "\\" + subKey,
-							"JavaHome");
-					} catch (Throwable t) {
-						return null;
-					}
-				})
-				.filter(javaHome -> javaHome != null)
-				.distinct()
-				.map(File::new)
-				.map(javaHome -> {
-					try {
-						return getJVM(javaHome);
-					} catch (Throwable t) {
-						return null;
-					}
-				})
-				.filter(jvm -> jvm != null)
-				.forEach(vms::add);
-		}
-	}
-
-	@Override
-	public JVM getJVM(File vmdir) throws Exception {
-		if (!vmdir.isDirectory()) {
-			return null;
+		Matcher m = JAVA_HOME.matcher(sb);
+		Set<String> homes = new TreeSet<>();
+		while (m.find()) {
+			homes.add(m.group("path"));
 		}
 
-		File binDir = new File(vmdir, "bin");
-		if (!binDir.isDirectory()) {
-			logger.debug("Found a directory {}, but it does not have the expected bin directory", vmdir);
-			return null;
+		for (String p : homes) {
+			File javahome = new File(p);
+			JVM vm = getJVM(javahome);
+			if (vm != null) {
+				vms.add(vm);
+			}
 		}
 
-		File javaExe = new File(vmdir, "bin/java.exe");
-		if (!javaExe.isFile() || !javaExe.exists()) {
-			logger.debug("Found a directory {}, but it does not have the expected java exe", vmdir);
-			return null;
-		}
-
-		File releaseFile = new File(vmdir, "release");
-		if (!releaseFile.isFile() || !releaseFile.exists()) {
-			logger.debug("Found a directory {}, but it doesn't contain an expected release file", vmdir);
-			return null;
-		}
-
-		try (InputStream is = Files.newInputStream(releaseFile.toPath())) {
-			Properties releaseProps = new Properties();
-			releaseProps.load(is);
-
-			JVM jvm = new JVM();
-			jvm.name = vmdir.getName();
-			jvm.path = vmdir.getCanonicalPath();
-			jvm.platformRoot = vmdir.getCanonicalPath();
-			jvm.version = releaseProps.getProperty("JAVA_VERSION");
-			jvm.platformVersion = jvm.version;
-
-			return jvm;
-		}
 	}
 
 }
