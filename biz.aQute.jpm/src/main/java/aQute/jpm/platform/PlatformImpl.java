@@ -2,23 +2,15 @@ package aQute.jpm.platform;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.PrintStream;
-import java.lang.reflect.Method;
-import java.util.Formatter;
-import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import aQute.bnd.version.MavenVersion;
-import aQute.jpm.api.JPM;
 import aQute.jpm.api.JVM;
 import aQute.jpm.api.Platform;
-import aQute.lib.getopt.CommandLine;
 import aQute.lib.io.IO;
-import aQute.libg.reporter.ReporterAdapter;
-import aQute.libg.sed.Sed;
 import aQute.service.reporter.Reporter;
 
 public abstract class PlatformImpl implements Platform {
@@ -27,7 +19,11 @@ public abstract class PlatformImpl implements Platform {
 	static PlatformImpl	platform;
 	static Runtime		runtime	= Runtime.getRuntime();
 	Reporter			reporter;
-	JPM					jpm;
+	final File			cache;
+
+	PlatformImpl(File cache) {
+		this.cache = cache;
+	}
 
 	/**
 	 * Get the current platform manager.
@@ -35,20 +31,20 @@ public abstract class PlatformImpl implements Platform {
 	 * @param reporter
 	 * @param type
 	 */
-	public static PlatformImpl getPlatform(Reporter reporter, Type type) {
+	public static PlatformImpl getPlatform(Reporter reporter, Type type, File cache) {
 		if (platform == null) {
 			if (type == null)
 				type = getPlatformType();
 
 			switch (type) {
 				case LINUX :
-					platform = new Linux();
+					platform = new Linux(cache);
 					break;
 				case MACOS :
-					platform = new MacOS();
+					platform = new MacOS(cache);
 					break;
 				case WINDOWS :
-					platform = new Windows();
+					platform = new Windows(cache);
 					break;
 				default :
 					return null;
@@ -73,88 +69,7 @@ public abstract class PlatformImpl implements Platform {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		try (Formatter formatter = new Formatter(sb)) {
-			formatter.format("Name                %s%n", getName());
-			formatter.format("Local               %s%n", getLocal());
-			formatter.format("Global              %s%n", getGlobal());
-			return formatter.toString();
-		}
-	}
-
-	@Override
-	public int run(String args) throws Exception {
-		return runtime.exec(args)
-			.waitFor();
-	}
-
-	protected String[] add(String[] extra, String... more) {
-		if (extra == null || extra.length == 0)
-			return more;
-
-		if (more == null || more.length == 0)
-			return extra;
-
-		String[] result = new String[extra.length + more.length];
-		System.arraycopy(extra, 0, result, 0, extra.length);
-		System.arraycopy(more, 0, result, extra.length, more.length);
-		return result;
-	}
-
-	@Override
-	public String installCompletion(Object target) throws Exception {
-		return "No completion available for this platform";
-	}
-
-	public void parseCompletion(Object target, File f) throws Exception {
-		IO.copy(getClass().getResource("unix/jpm-completion.bash"), f);
-
-		Sed sed = new Sed(f);
-		sed.setBackup(false);
-
-		Reporter r = new ReporterAdapter();
-		CommandLine c = new CommandLine(r);
-		Map<String, Method> commands = c.getCommands(target);
-		StringBuilder sb = new StringBuilder();
-		for (String commandName : commands.keySet()) {
-			sb.append(" " + commandName);
-		}
-		sb.append(" help");
-
-		sed.replace("%listJpmCommands%", sb.toString()
-			.substring(1));
-		sed.doIt();
-	}
-
-	public void parseCompletion(Object target, PrintStream out) throws Exception {
-		File tmp = File.createTempFile("jpm-completion", ".tmp");
-		tmp.deleteOnExit();
-
-		try {
-			parseCompletion(target, tmp);
-			IO.copy(tmp, out);
-		} finally {
-			IO.delete(tmp);
-		}
-	}
-
-	public void setJpm(JPM jpm) {
-		this.jpm = jpm;
-	}
-
-	public String verifyVM(File f) {
-		if (!f.isDirectory())
-			return "Not a directory";
-
-		File bin = new File(f, "bin");
-		if (!bin.isDirectory())
-			return "No bin directory %s for a VM's executables";
-
-		File lib = new File(f, "lib");
-		if (!lib.isDirectory())
-			return "No lib directory %s for a VM's libraries and certificates";
-
-		return null;
+		return getName();
 	}
 
 	/**
@@ -171,7 +86,6 @@ public abstract class PlatformImpl implements Platform {
 	 * </pre>
 	 */
 
-	@Override
 	public JVM getJVM(File vmdir) throws Exception {
 		if (!vmdir.isDirectory()) {
 			return null;
@@ -207,20 +121,7 @@ public abstract class PlatformImpl implements Platform {
 		}
 	}
 
-	protected String getJava(String jvmVersionRange, boolean windows) throws Exception {
-		String java;
-		JVM jvm = jpm.getVM(jvmVersionRange);
-		if (jvm == null) {
-			java = IO.getJavaExecutablePath(windows ? "javaw" : "java");
-			if (java == null)
-				java = windows ? "javaw" : "java";
-		} else {
-			java = (windows ? jvm.javaw() : jvm.java()).getAbsolutePath();
-		}
-		return java;
-	}
-
-	private String cleanup(String v) {
+	String cleanup(String v) {
 		if (v == null)
 			return null;
 
@@ -232,4 +133,13 @@ public abstract class PlatformImpl implements Platform {
 
 		return v;
 	}
+
+	String priority(String... options) {
+		for (String option : options) {
+			if (option != null)
+				return option;
+		}
+		return null;
+	}
+
 }

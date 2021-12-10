@@ -2,16 +2,38 @@ package aQute.jpm.api;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 
 import biz.aQute.result.Result;
 
+/**
+ * Service to manage a set of commands that can be used in the shell for Linux,
+ * MacOS, and Windows.
+ */
 public interface JPM extends Closeable {
+	/**
+	 * Comma separated list of release urls to maven repos in the settings
+	 */
+	String	RELEASE_URLS	= "jpm.config.release";
+	/**
+	 * Comma separated list of snapshot urls to maven repos in the settings
+	 */
+	String	SNAPSHOT_URLS	= "jpm.config.snapshot";
 
-	List<String> search(String spec) throws Exception;
-
+	/**
+	 * Translate a spec tp a File. A spec can be:
+	 * <ul>
+	 * <li>URL
+	 * <li>File path
+	 * <li>SHA
+	 * <li>Maven group:artifact[:class[:extension]][:version[-SNAPSHOT]]
+	 * </ul>
+	 *
+	 * @param spec the spec
+	 * @return a file or a reason why it could not be mapped
+	 */
 	Result<File> getArtifact(String spec) throws Exception;
 
 	/**
@@ -25,48 +47,77 @@ public interface JPM extends Closeable {
 	File getBinDir();
 
 	/**
-	 * Can write the home and bin dir
+	 * Get a list of command datas
 	 *
-	 * @return true if the directories are writeable
+	 * @return the list of commands
 	 */
-	boolean hasAccess();
-
-	File getCommandDir();
-
-	default List<CommandData> getCommands() throws Exception {
-		return getCommands(getCommandDir());
-	}
-
-	List<CommandData> getCommands(File commandDir) throws Exception;
-
-	CommandData getCommand(String name) throws Exception;
-
-	void deinit(Appendable out, boolean force) throws Exception;
+	List<CommandData> getCommands();
 
 	/**
-	 * @param data
-	 * @throws Exception
-	 * @throws IOException
+	 * Get the existing data of one command by name
+	 *
+	 * @param name name of the command
+	 * @return a command data
 	 */
-	String createCommand(CommandData data, boolean force) throws Exception;
+	Result<CommandData> getCommand(String name) throws Exception;
 
+	/**
+	 * Create a command data block for a given coordinate. This will use the
+	 * file obtained from {@link #getArtifact(String)}, analyze it and provide
+	 * defaults. The command will _not_ be written do disk yet.
+	 *
+	 * @param coordinate a coordinate to use
+	 * @return a new command data, not saved
+	 */
+	Result<CommandData> createCommandData(String coordinate) throws Exception;
+
+	/**
+	 * Save the command data and make it permanent. If the command already
+	 * exists, force should be true. This returns a non-null value in the case
+	 * of issues.
+	 *
+	 * @param data the command data
+	 * @param force override an existing command
+	 * @return null when ok, a reason if there was a failure
+	 */
+	String saveCommand(CommandData data, boolean force) throws Exception;
+
+	/**
+	 * Delete a command from the system.
+	 *
+	 * @param name the name of the command
+	 */
 	void deleteCommand(String name) throws Exception;
 
-	void setJvmLocation(String jvmlocation) throws Exception;
-
-	void setUnderTest();
-
-	Result<CommandData> getCommandData(String artifact) throws Exception;
-
-	SortedSet<JVM> getVMs() throws Exception;
-
-	String getJvmLocation();
-
+	/**
+	 * Initialize. This will find the jar that this is running from, and install
+	 * it under the name "jpm".
+	 */
 	void init() throws Exception;
 
+	/**
+	 * Remove all the commands and then the home dir. This is destructive.
+	 */
+	void deinit() throws Exception;
+
+	/**
+	 * Get the Platform in use
+	 *
+	 * @return the platform
+	 */
 	Platform getPlatform() throws Exception;
 
-	JVM addVm(File f) throws Exception;
+	/**
+	 * Get a sorted list of JVMs. The highest version is the first element in
+	 * the list. VMs are found in a platform specific way.
+	 *
+	 * @return the list of VMs.
+	 */
+	SortedSet<JVM> getVMs() throws Exception;
+
+	Result<JVM> getVM(File javahome) throws Exception;
+
+	JVM selectVM(String range) throws Exception;
 
 	/**
 	 * Post install
@@ -78,6 +129,10 @@ public interface JPM extends Closeable {
 	 */
 	Result<List<String>> getRevisions(String program);
 
-	JVM getVM(String jpmVersionRange) throws Exception;
+	Map<String, String> getSettings();
+
+	void save();
+
+	Result<List<String>> search(String query, int from, int pages);
 
 }

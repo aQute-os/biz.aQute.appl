@@ -19,32 +19,14 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import aQute.jpm.api.JVM;
-import aQute.lib.io.IO;
 
 class MacOS extends Unix {
 	private final static Logger		logger	= LoggerFactory.getLogger(MacOS.class);
 	static DocumentBuilderFactory	dbf		= DocumentBuilderFactory.newInstance();
 	static XPathFactory				xpf		= XPathFactory.newInstance();
 
-	@Override
-	public File getGlobal() {
-		return new File("/Library/Java/PackageManager").getAbsoluteFile();
-	}
-
-	@Override
-	public File getGlobalBinDir() {
-		return new File("/usr/local/bin").getAbsoluteFile();
-	}
-
-	@Override
-	public File getLocal() {
-		return IO.getFile("~/Library/PackageManager")
-			.getAbsoluteFile();
-	}
-
-	@Override
-	public void shell(String initial) throws Exception {
-		run("open -n /Applications/Utilities/Terminal.app");
+	MacOS(File cache) {
+		super(cache);
 	}
 
 	@Override
@@ -54,11 +36,6 @@ class MacOS extends Unix {
 
 	@Override
 	public void uninstall() throws IOException {}
-
-	@Override
-	public String defaultCacertsPassword() {
-		return "changeit";
-	}
 
 	@Override
 	public String toString() {
@@ -113,11 +90,6 @@ class MacOS extends Unix {
 		}
 
 		File home = new File(contents, "Home");
-		String error = verifyVM(home);
-		if (error != null) {
-			reporter.error("Invalid vm directory for MacOS %s: %s", vmdir, error);
-			return null;
-		}
 
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		try {
@@ -133,7 +105,7 @@ class MacOS extends Unix {
 
 			JVM jvm = new JVM();
 			jvm.name = vmdir.getName();
-			jvm.javahome = vmdir.getCanonicalPath();
+			jvm.javahome = home.getCanonicalPath();
 			jvm.version = getSiblingValue(versionNode);
 			jvm.platformVersion = getSiblingValue(platformVersionNode);
 			jvm.vendor = getSiblingValue(vendorNode);

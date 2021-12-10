@@ -27,9 +27,8 @@ class Linux extends Unix {
 	static final String			COMPLETION_DIRECTORY	= "/etc/bash_completion.d";
 	private final static Logger	logger					= LoggerFactory.getLogger(Linux.class);
 
-	@Override
-	public void shell(String initial) throws IOException {
-		throw new UnsupportedOperationException();
+	Linux(File cache) {
+		super(cache);
 	}
 
 	@Override
@@ -45,20 +44,6 @@ class Linux extends Unix {
 	@Override
 	public String toString() {
 		return "Linux";
-	}
-
-	@Override
-	public String installCompletion(Object target) throws Exception {
-		File dir = new File(COMPLETION_DIRECTORY);
-
-		if (!dir.exists() || !dir.canWrite()) {
-			return "Bash completion directory does not exist or cannot be written to";
-		}
-
-		File f = new File(dir, "jpm-completion.bash");
-		parseCompletion(target, f);
-
-		return "Bash completion file installed in " + COMPLETION_DIRECTORY;
 	}
 
 	@Override

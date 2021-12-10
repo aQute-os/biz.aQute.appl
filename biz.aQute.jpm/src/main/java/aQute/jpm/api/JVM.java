@@ -36,4 +36,5 @@ public class JVM extends struct {
 	public File bin() {
 		return new File(javahome, "bin");
 	}
+
 }
