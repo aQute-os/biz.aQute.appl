@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -45,7 +46,6 @@ import aQute.bnd.header.Attrs;
 import aQute.bnd.header.OSGiHeader;
 import aQute.bnd.header.Parameters;
 import aQute.bnd.http.HttpClient;
-import aQute.bnd.osgi.Constants;
 import aQute.bnd.service.url.TaggedData;
 import aQute.jpm.api.CommandData;
 import aQute.jpm.api.JPM;
@@ -54,10 +54,12 @@ import aQute.jpm.platform.PlatformImpl;
 import aQute.lib.base64.Base64;
 import aQute.lib.collections.ExtList;
 import aQute.lib.converter.Converter;
+import aQute.lib.filter.Filter;
 import aQute.lib.io.IO;
 import aQute.lib.json.JSONCodec;
 import aQute.lib.settings.Settings;
 import aQute.libg.cryptography.SHA1;
+import aQute.libg.parameters.ParameterMap;
 import aQute.maven.api.Archive;
 import aQute.maven.api.IPom.Dependency;
 import aQute.maven.api.MavenScope;
@@ -310,9 +312,10 @@ public class JustAnotherPackageManager implements JPM {
 			Attributes main = m.getMainAttributes();
 			data.coordinate = coordinate;
 			data.main = main.getValue("Main-Class");
-			data.description = main.getValue(Constants.BUNDLE_DESCRIPTION);
+			data.description = main.getValue("Bundle-Description");
 			data.title = main.getValue("JPM-Name");
 
+			data.range = range(main.getValue("Require-Capability"));
 			data.dependencies.add(cached.getAbsolutePath());
 
 			if (isMaven(coordinate))
@@ -347,6 +350,34 @@ public class JustAnotherPackageManager implements JPM {
 			}
 			return Result.ok(data);
 		}
+	}
+
+	private String range(String requireCapability) {
+		try {
+			ParameterMap pm = new ParameterMap(requireCapability);
+			for (Map.Entry<String, aQute.libg.parameters.Attributes> e : pm.entrySet()) {
+				if (e.getKey()
+					.equals("osgi.ee")) {
+					aQute.libg.parameters.Attributes ee = e.getValue();
+					if (ee.containsKey("filter:")) {
+						Filter f = new Filter(ee.get("filter:"));
+						Map<String, Object> map = new HashMap<>();
+						map.put("osgi.ee", "JavaSE");
+						int low = 1000;
+						for (int i = 4; i < 100; i++) {
+							map.put("version", new Version(1, i, 0));
+							if (f.matchMap(map)) {
+								low = Math.min(low, i);
+							}
+						}
+						return "1." + low + ".0";
+					}
+				}
+			}
+		} catch (Exception e) {
+			// ignore
+		}
+		return null;
 	}
 
 	final static String		TOKEN_S	= "[\\p{javaJavaIdentifierPart}._-]+";
