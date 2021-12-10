@@ -128,7 +128,8 @@ class Windows extends PlatformImpl {
 				Version low = range.getLow();
 				Version high = range.getHigh();
 				pw.printf("vm.version.min=%s%n", low);
-				pw.printf("vm.version.max=%s%n", high);
+				if (high.getMajor() < 100)
+					pw.printf("vm.version.max=%s%n", high);
 			}
 
 			Map<String, String> map2 = new HashMap<>(map);
