@@ -87,7 +87,7 @@ public interface JPM extends Closeable {
 	 *
 	 * @param name the name of the command
 	 */
-	void deleteCommand(String name) throws Exception;
+	void rmCommand(String name) throws Exception;
 
 	/**
 	 * Initialize. This will find the jar that this is running from, and install

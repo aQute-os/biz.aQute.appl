@@ -245,7 +245,7 @@ public class JustAnotherPackageManager implements JPM {
 	@Override
 	public void deinit() {
 		for (CommandData cmd : getCommands()) {
-			deleteCommand(cmd.name);
+			rmCommand(cmd.name);
 		}
 		if (homeDir.equals(IO.home) || homeDir.equals(IO.work) || homeDir.list().length > 5
 			|| homeDir.getParentFile() == null)
@@ -255,7 +255,7 @@ public class JustAnotherPackageManager implements JPM {
 	}
 
 	@Override
-	public void deleteCommand(String name) {
+	public void rmCommand(String name) {
 		try {
 			Result<CommandData> cmd = getCommand(name);
 			if (cmd.isErr())
