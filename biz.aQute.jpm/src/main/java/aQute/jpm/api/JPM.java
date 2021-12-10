@@ -117,6 +117,14 @@ public interface JPM extends Closeable {
 
 	Result<JVM> getVM(File javahome) throws Exception;
 
+	/**
+	 * Pick a VM for the given version range. If it is a single version, it is a
+	 * minimum version (inclusive). If the range is null, it will use the latest
+	 * installed Java version. For a range, the highest matching VM is returned
+	 *
+	 * @param range the version range like OSGi
+	 * @return a JVM or null if no matching VM was found
+	 */
 	JVM selectVM(String range) throws Exception;
 
 	/**

@@ -340,16 +340,13 @@ public class JustAnotherPackageManager implements JPM {
 				if (attrs.containsKey("title"))
 					data.title = attrs.get("title");
 
-				if (attrs.containsKey("jvmversion")) {
-					VersionRange range = new VersionRange(attrs.get("jvmversion"));
-					data.range = range.toString();
-				}
 				if (data.title == null)
 					data.title = data.name;
 
 			}
 			return Result.ok(data);
 		}
+
 	}
 
 	private String range(String requireCapability) {
