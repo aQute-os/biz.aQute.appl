@@ -8,7 +8,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -406,7 +405,7 @@ public class Main extends ReporterAdapter {
 			List<String> args = opts._arguments();
 			for (CommandData cmd : jpm.getCommands()) {
 				if (args.contains(cmd.name)) {
-					jpm.deleteCommand(cmd.name);
+					jpm.rmCommand(cmd.name);
 				}
 			}
 			return;
@@ -430,7 +429,7 @@ public class Main extends ReporterAdapter {
 			JustAnotherPackageManager.xcopy(older, newer);
 
 			if (updateCommandData(newer, opts)) {
-				jpm.deleteCommand(older.name);
+				jpm.rmCommand(older.name);
 				String r = jpm.saveCommand(newer, true);
 				if (r != null)
 					error("Failed to update command %s: %s", cmd, r);
@@ -724,43 +723,27 @@ public class Main extends ReporterAdapter {
 	 * Alternative for command -r {@code <commandName>}
 	 */
 	@Arguments(arg = {
-		"command|service", "..."
+		"glob"
 	})
-	@Description("Remove the specified command(s) or service(s) from the system")
-	interface UninstallOptions extends Options {}
+	@Description("Remove the specified command(s) from the system by specifying a glob on the name")
+	interface UninstallOptions extends Options {
+		@Description("Just show what will be removed, do not actually remove it")
+		boolean dry();
+	}
 
-	@Description("Remove a command or a service from the system")
-	public void _remove(UninstallOptions opts) throws Exception {
-		ArrayList<String> toDelete = new ArrayList<>();
+	@Description("Remove a command from the system")
+	public void _rm(UninstallOptions opts) throws Exception {
 
-		ArrayList<String> names = new ArrayList<>();
-		List<CommandData> commands = jpm.getCommands();
-		for (CommandData command : commands) {
-			names.add(command.name);
-		}
-
-		for (String pattern : opts._arguments()) {
-			Glob glob = new Glob(pattern);
-			for (String name : names) {
-				if (glob.matcher(name)
-					.matches()) {
-					toDelete.add(name);
-				}
+		Glob g = new Glob(opts._arguments()
+			.get(0));
+		for (CommandData command : jpm.getCommands()) {
+			if (g.finds(command.name) < 0) {
+				continue;
 			}
+			if (!opts.dry())
+				jpm.rmCommand(command.name);
+			out.printf("RM %-20s %s%n", command.name, command.coordinate);
 		}
-
-		int ccount = 0, scount = 0;
-
-		for (String name : toDelete) {
-			if (jpm.getCommand(name) != null) { // Try command first
-				logger.debug("Corresponding command found, removing");
-				jpm.deleteCommand(name);
-				ccount++;
-			} else { // No match amongst commands & services
-				error("No matching command or service found for: %s", name);
-			}
-		}
-		out.format("%d command(s) removed and %d service(s) removed%n", ccount, scount);
 	}
 
 	/**
