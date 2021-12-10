@@ -13,9 +13,9 @@ public class JVM extends struct {
 	 * where the 'bin' folder is stored with the executables and should
 	 * generally contain a 'release' file with the release properties
 	 */
+	public String					javahome;
 
 	public String					platformVersion;
-	public String					javahome;
 	public String					version;
 	public String					vendor;
 	public String					name;

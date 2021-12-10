@@ -344,6 +344,14 @@ public class Main extends ReporterAdapter {
 		CommandData cmd = result.unwrap();
 
 		updateCommandData(cmd, opts);
+
+		if (cmd.range != null) {
+			JVM selectVM = jpm.selectVM(cmd.range);
+			if (selectVM == null) {
+				warning("No vm installed on your system for required version %s", cmd.range);
+			}
+		}
+
 		List<aQute.struct.struct.Error> errors = cmd.validate();
 		if (!errors.isEmpty()) {
 			error("Command not valid");
@@ -602,9 +610,11 @@ public class Main extends ReporterAdapter {
 	 */
 	@Description("Manage installed VMs ")
 	interface VMOptions extends Options {
+		@Description("Add a vm")
 		String add();
 	}
 
+	@Description("Manage installed VMs ")
 	public void _vms(VMOptions opts) throws Exception {
 		if (opts.add() != null) {
 			File f = IO.getFile(base, opts.add())
