@@ -1,12 +1,11 @@
 package aQute.jpm.main;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -35,16 +34,13 @@ import aQute.jpm.api.JPM;
 import aQute.jpm.api.JVM;
 import aQute.jpm.lib.JustAnotherPackageManager;
 import aQute.jpm.platform.PlatformImpl;
-import aQute.lib.base64.Base64;
 import aQute.lib.collections.ExtList;
 import aQute.lib.getopt.Arguments;
 import aQute.lib.getopt.CommandLine;
 import aQute.lib.getopt.Description;
 import aQute.lib.getopt.Options;
-import aQute.lib.hex.Hex;
 import aQute.lib.io.IO;
 import aQute.lib.justif.Justif;
-import aQute.lib.settings.Settings;
 import aQute.lib.strings.Strings;
 import aQute.libg.glob.Glob;
 import aQute.libg.reporter.ReporterAdapter;
@@ -57,21 +53,18 @@ import biz.aQute.result.Result;
 @Description("Just Another Package Manager (for Java)\nMaintains a local repository of Java jars (apps or libs). Can automatically link these jars to an OS command or OS service. For more information see http://jpm.bndtools.org")
 public class Main extends ReporterAdapter {
 	private final static Logger	logger			= LoggerFactory.getLogger(Main.class);
-	private static final String	JPM_CONFIG_BIN	= "jpm.config.bin";
-	private static final String	JPM_CONFIG_HOME	= "jpm.config.home";
 	static Pattern				ASSIGNMENT		= Pattern.compile("\\s*([-\\w\\d_.]+)\\s*(?:=\\s*([^\\s]+)\\s*)?");
 	public final static Pattern	URL_PATTERN		= Pattern.compile("[a-zA-Z][0-9A-Za-z]{1,8}:.+");
 	public final static Pattern	BSNID_PATTERN	= Pattern.compile("([-A-Z0-9_.]+?)(-\\d+\\.\\d+.\\d+)?",
 		Pattern.CASE_INSENSITIVE);
 	File						base			= new File(System.getProperty("user.dir"));
-	Settings					settings;
 
 	JPM							jpm;
 	final PrintStream			err;
 	final PrintStream			out;
+
 	File						sm;
-	private String				url;
-	private JpmOptions			options;
+	JpmOptions					options;
 	static String				encoding		= System.getProperty("file.encoding");
 	int							width			= 120;																// characters
 	int							tabs[]			= {
@@ -111,83 +104,30 @@ public class Main extends ReporterAdapter {
 		}
 	}
 
-	/**
-	 * Show installed binaries
-	 */
-
-	public interface ModifyService extends ModifyCommand {
-		@Description("Provide arguments to the service when started")
-		String args();
-
-		@Description("Set the log path. Log output will go to this file, otherwise in a reserved directory")
-		String log();
-
-		@Description("Set the log path")
-		String work();
-
-		@Description("Set the user id for the service when running")
-		String user();
-
-		@Description("If set, will be started at boot time after the given services have been started. Specify boot if there are no other dependencies.")
-		List<String> after();
-
-		@Description("Commands executed after the service exits, will run under root.")
-		String epilog();
-
-		@Description("Commands executed just before the service starts while still root.")
-		String prolog();
-	}
-
 	public interface ModifyCommand {
 		@Description("Provide or override the JVM arguments")
 		String jvmargs();
 
-		@Description("Provide a jvm range")
-		String jvmlocation();
+		@Description("Provide the vm JAVAHOME directory")
+		String vm();
 
 		@Description("Provide the name of the main class used to launch this command or service in fully qualified form, e.g. aQute.main.Main")
 		String main();
 
-		@Description("Provide the name of the command or service")
+		@Description("Provide the name of the command")
 		String name();
 
-		@Description("Provide the title of the command or service")
+		@Description("Provide the title of the command")
 		String title();
-
-		@Description("Collect permission requests and print them at the end of a run. This can provide detailed information about what resources the command is using.")
-		boolean trace();
 
 		@Description("Java is default started in console mode, you can specify to start it in windows mode (or javaw)")
 		boolean windows();
 
-	}
-
-	/**
-	 * Services
-	 */
-	@Arguments(arg = {
-		"[name]"
-	})
-	@Description("Manage the JPM services. Without arguments and options, this will show all the current services. Careful, if --remove is used all services are removed without any parameters.")
-	public interface ServiceOptions extends Options, ModifyService {
-
-		@Description("forece delete if necessary")
-		boolean force();
-
-		@Description("Create a new service on an existing artifact")
-		String create();
-
-		@Description("Remove the given service")
-		boolean remove();
-
-		@Description("Consider staged versions. Normally only masters are considered.")
-		boolean staged();
-
-		@Description("Update the service with the latest master/staged version (see --staged)")
-		boolean update();
-
-		@Description("Specify the coordinate of the service, identifies the main binary")
-		String coordinates();
+		@Description("Provide a range for the JVM. This must be in the OSGi syntax & semantics. I.e. "
+			+ "simple version like 1.17 indicates higher than 1.17. However, the upper range can "
+			+ "be limited with a range like `[1.8,1.11)`. If a range is specified, the command will fail "
+			+ "if no matching vm can be found. If the `vm` is set, then this range option is ignored.")
+		String range();
 	}
 
 	/**
@@ -234,14 +174,11 @@ public class Main extends ReporterAdapter {
 		@Description("Do not return error status for error that match this given regular expression.")
 		String[] failok();
 
-		@Description("Remote library url, default \"http://repo1.maven.org/maven2/\". Setting: 'jpm settings library.url=...'")
-		String library();
-
 		@Description("Specify the home directory of jpm. (can also be permanently set with 'jpm settings jpm.home=...'")
 		String home();
 
-		@Description("Provide or override the JVM location when installing jpm (for Windows only)")
-		String jvmlocation();
+		@Description("Specify executables directory (one-shot)")
+		String bindir();
 
 		@Description("Wait for a key press, might be useful when you want to see the result before it is overwritten by a next command")
 		boolean key();
@@ -249,17 +186,16 @@ public class Main extends ReporterAdapter {
 		@Description("Show the release notes")
 		boolean release();
 
-		@Description("Change settings file (one-shot)")
-		String settings();
-
-		@Description("Specify executables directory (one-shot)")
-		String bindir();
-
 		@Description("Specify the platform (this is mainly for testing purposes). Is either WINDOWS, MACOS, or LINUX")
 		PlatformImpl.Type os();
 
-		boolean xtesting();
+		@Description("Specify an additional list of URLs to search. URLs must be comma separated and quoted")
+		String urls();
 
+		@Description("Show debug output")
+		boolean debug();
+
+		@Description("Width used for formatting")
 		int width();
 	}
 
@@ -274,66 +210,45 @@ public class Main extends ReporterAdapter {
 
 		try {
 			setExceptions(opts.exceptions());
+			setPedantic(opts.pedantic());
 			if (opts.trace()) {
 				setTrace(opts.trace());
+			}
+			if (opts.debug()) {
 				StaticLoggerBinder.getSingleton()
 					.add("*", Level.DEBUG);
 			}
-			setPedantic(opts.pedantic());
-			PlatformImpl platform = PlatformImpl.getPlatform(this, opts.os());
-			logger.debug("Platform {}", platform);
 
 			if (opts.base() != null)
 				base = IO.getFile(base, opts.base());
 
-			if (opts.settings() != null) {
-				settings = new Settings(opts.settings());
-				logger.debug("Using settings file: {}", opts.settings());
-			} else {
-				settings = new Settings(platform.getConfigFile());
-			}
-
-			String home = settings.getOrDefault(JPM_CONFIG_HOME, IO.getFile("~/.jpm")
-				.getAbsolutePath());
-			File homeDir = new File(home);
+			File homeDir = IO.getFile("~/.jpm");
 			File binDir;
 
 			if (opts.home() != null) {
 				homeDir = IO.getFile(base, opts.home());
 			}
+
 			if (opts.bindir() != null) {
 				binDir = new File(opts.bindir());
 				binDir = binDir.getAbsoluteFile();
 			} else {
-				String bin = settings.getOrDefault(JPM_CONFIG_BIN, new File(home, "bin").getAbsolutePath());
-				binDir = new File(bin);
+				binDir = new File(homeDir, "bin");
 			}
 			if (!binDir.isAbsolute())
 				binDir = new File(base, opts.bindir());
 
 			logger.debug("home={}, bin={}", homeDir, binDir);
 
-			url = opts.library();
+			PlatformImpl platform = PlatformImpl.getPlatform(this, opts.os(), homeDir);
+			logger.debug("Platform {}", platform);
 
-			if (url == null)
-				url = settings.getOrDefault("library.url",
-					"https://repo1.maven.org/maven2," + "https://oss.sonatype.org/content/repositories/snapshots/,"
-						+ "https://bndtools.jfrog.io/bndtools/update-snapshot");
-
-			jpm = new JustAnotherPackageManager(this, platform, homeDir, binDir, url);
-
-			if (opts.jvmlocation() != null) {
-				jpm.setJvmLocation(opts.jvmlocation());
-			}
-
-			platform.setJpm(jpm);
+			jpm = new JustAnotherPackageManager(this, platform, homeDir, binDir);
 
 			checkPath();
 
 			try {
 				this.options = opts;
-				if (opts.xtesting())
-					jpm.setUnderTest();
 
 				CommandLine handler = opts._command();
 				List<String> arguments = opts._arguments();
@@ -381,8 +296,11 @@ public class Main extends ReporterAdapter {
 		if (PATH != null) {
 			boolean inPath = Strings.split(File.pathSeparator, PATH)
 				.stream()
-				.map(File::new)
-				.filter(f -> f.equals(jpm.getBinDir()))
+				.map(IO::getFile)
+				.filter(f -> {
+					System.out.println(f);
+					return f.equals(jpm.getBinDir());
+				})
 				.findAny()
 				.isPresent();
 			if (!inPath) {
@@ -406,11 +324,6 @@ public class Main extends ReporterAdapter {
 		@Description("Force overwrite of existing command")
 		boolean force();
 
-		/**
-		 * Install a file and extra commands
-		 */
-		@Description("Install jar without resolving dependencies")
-		boolean local();
 	}
 
 	/**
@@ -423,7 +336,7 @@ public class Main extends ReporterAdapter {
 		String coordinate = opts._arguments()
 			.get(0);
 
-		Result<CommandData> result = jpm.getCommandData(coordinate);
+		Result<CommandData> result = jpm.createCommandData(coordinate);
 		if (result.isErr()) {
 			error("failed to install %s: %s", coordinate, result.getMessage());
 			return;
@@ -432,7 +345,6 @@ public class Main extends ReporterAdapter {
 		CommandData cmd = result.unwrap();
 
 		updateCommandData(cmd, opts);
-
 		List<aQute.struct.struct.Error> errors = cmd.validate();
 		if (!errors.isEmpty()) {
 			error("Command not valid");
@@ -440,7 +352,8 @@ public class Main extends ReporterAdapter {
 				error("[%s] %s %s %s %s", error.code, error.description, error.path, error.failure, error.value);
 			}
 		} else {
-			String r = jpm.createCommand(cmd, opts.force());
+			String r = jpm.saveCommand(cmd, opts.force());
+
 			if (r != null) {
 				error("[%s] %s", coordinate, r);
 			}
@@ -457,13 +370,22 @@ public class Main extends ReporterAdapter {
 			data.jvmArgs = opts.jvmargs();
 			update = true;
 		}
-		if (opts.jvmlocation() != null) {
-			JVM vm = jpm.getVM(opts.jvmlocation());
-			if (vm != null) {
-				data.jvmVersionRange = opts.jvmlocation();
-			} else
-				error("could not find a vm for %s", opts.jvmlocation());
+
+		if (opts.windows() != data.windows) {
+			data.windows = opts.windows();
 			update = true;
+		}
+
+		if (opts.vm() != null) {
+			JVM vm = jpm.selectVM(opts.vm());
+			if (vm != null) {
+				data.java = (data.windows ? vm.javaw() : vm.java()).getAbsolutePath();
+				update = true;
+			} else
+				error("could not find a vm for %s", opts.vm());
+		} else if (opts.range() != null) {
+			data.range = opts.range();
+
 		}
 		if (opts.name() != null) {
 			data.name = opts.name();
@@ -471,14 +393,6 @@ public class Main extends ReporterAdapter {
 		}
 		if (opts.title() != null) {
 			data.title = opts.title();
-			update = true;
-		}
-		if (opts.trace() != data.trace) {
-			data.trace = opts.trace();
-			update = true;
-		}
-		if (opts.windows() != data.windows) {
-			data.windows = opts.windows();
 			update = true;
 		}
 
@@ -507,18 +421,19 @@ public class Main extends ReporterAdapter {
 		String cmd = opts._arguments()
 			.get(0);
 
-		CommandData data = jpm.getCommand(cmd);
-		if (data == null) {
-			error("Not found: %s", cmd);
+		Result<CommandData> result = jpm.getCommand(cmd);
+		if (result.isErr()) {
+			error(result.getMessage());
 		} else {
+			CommandData older = result.unwrap();
 			CommandData newer = new CommandData();
-			JustAnotherPackageManager.xcopy(data, newer);
+			JustAnotherPackageManager.xcopy(older, newer);
 
 			if (updateCommandData(newer, opts)) {
-				jpm.deleteCommand(data.name);
-				String result = jpm.createCommand(newer, true);
-				if (result != null)
-					error("Failed to update command %s: %s", cmd, result);
+				jpm.deleteCommand(older.name);
+				String r = jpm.saveCommand(newer, true);
+				if (r != null)
+					error("Failed to update command %s: %s", cmd, r);
 			}
 			print(newer);
 		}
@@ -529,15 +444,13 @@ public class Main extends ReporterAdapter {
 		Formatter f = j.formatter();
 		f.format("%n[%s]%n", command.name);
 		f.format("%s\n\n", Strings.display(command.description, command.title));
-		f.format("SHA-1\t1%s%n", command.sha);
 		f.format("Coordinate\t1%s%n", command.coordinate);
 		f.format("JVMArgs\t1%s%n", "JVM Args", command.jvmArgs);
 		f.format("Main class\t1%s%n", command.main);
 		f.format("Install time\t1%s%n", new Date(command.time));
 		f.format("Path\t1%s%n", command.bin);
-		f.format("Installed\t1%s%n", command.installed);
-		f.format("JRE\t1%s%n", Strings.display(command.jvmVersionRange, "<default>"));
-		f.format("Trace\t1%s%n", command.trace ? "On" : "Off");
+		f.format("JRE\t1%s%n", Strings.display(command.range, "<default>"));
+		f.format("java(w)\t1%s%n", Strings.display(command.java, "<default>"));
 		list(f, "Dependencies", command.dependencies);
 
 		out.append(j.wrap());
@@ -567,7 +480,10 @@ public class Main extends ReporterAdapter {
 
 	@Description("Remove jpm from the system by deleting all artifacts and metadata")
 	public void _deinit(deinitOptions opts) throws Exception {
-		jpm.deinit(out, opts.force());
+		if (opts.force())
+			jpm.deinit();
+		else
+			error("Please specify -f");
 	}
 
 	/**
@@ -593,7 +509,7 @@ public class Main extends ReporterAdapter {
 	interface InitOptions extends Options {
 
 		@Description("Provide or override the JVM location (for Windows only)")
-		String jvmlocation();
+		String vm();
 
 	}
 
@@ -601,10 +517,6 @@ public class Main extends ReporterAdapter {
 	public void _init(InitOptions opts) throws Exception {
 
 		jpm.init();
-
-		if (opts.jvmlocation() != null) {
-			jpm.setJvmLocation(opts.jvmlocation());
-		}
 
 		try {
 			String s = System.getProperty("jpm.jar", System.getProperty("java.class.path"));
@@ -621,23 +533,16 @@ public class Main extends ReporterAdapter {
 
 					String help = null;
 
-					if (jpm.getJvmLocation() != null) {
-						help = cl.execute(this, "install",
-							Arrays.asList("-fl", "-J", jpm.getJvmLocation(), f.getAbsolutePath()));
+					if (opts.vm() != null) {
+						help = cl.execute(this, "install", Arrays.asList("-f", "-v", opts.vm(), f.getAbsolutePath()));
 					} else {
-						help = cl.execute(this, "install", Arrays.asList("-fl", f.getAbsolutePath()));
+						help = cl.execute(this, "install", Arrays.asList("-f", f.getAbsolutePath()));
 					}
 
 					if (help != null) {
 						error(help);
 						return;
 					}
-
-					settings.put(JPM_CONFIG_BIN, jpm.getBinDir()
-						.getAbsolutePath());
-					settings.put(JPM_CONFIG_HOME, jpm.getHomeDir()
-						.getAbsolutePath());
-					settings.save();
 
 					out.println("Home dir      " + jpm.getHomeDir());
 					out.println("Bin  dir      " + jpm.getBinDir());
@@ -701,7 +606,7 @@ public class Main extends ReporterAdapter {
 		String add();
 	}
 
-	public void _vm(VMOptions opts) throws Exception {
+	public void _vms(VMOptions opts) throws Exception {
 		if (opts.add() != null) {
 			File f = IO.getFile(base, opts.add())
 				.getCanonicalFile();
@@ -709,7 +614,7 @@ public class Main extends ReporterAdapter {
 			if (!f.isDirectory()) {
 				error("No such directory %s to add a JVM", f);
 			} else {
-				jpm.addVm(f);
+				jpm.getVM(f);
 			}
 		}
 
@@ -719,14 +624,6 @@ public class Main extends ReporterAdapter {
 			out.printf("%-30s %-5s %-20s %-10s %s\n", jvm.name, jvm.version, jvm.vendor, jvm.os_arch, jvm.javahome);
 		}
 
-	}
-
-	@Arguments(arg = {
-		"service"
-	})
-	@Description("Start a service")
-	interface startOptions extends Options {
-		boolean clean();
 	}
 
 	@Arguments(arg = {})
@@ -767,92 +664,53 @@ public class Main extends ReporterAdapter {
 		+ "Can alse be used to create change a settings with \"jpm settings <key>=<value>\"")
 	interface settingOptions extends Options {
 		boolean clear();
-
-		boolean publicKey();
-
-		boolean secretKey();
-
-		boolean id();
-
-		boolean mac();
-
-		boolean hex();
 	}
 
 	@Description("Manage user settings of jpm (in ~/.jpm)")
 	public void _settings(settingOptions opts) throws Exception {
-		try {
-			logger.debug("settings {}", opts.clear());
-			List<String> rest = opts._arguments();
-
-			if (opts.clear()) {
-				settings.clear();
-				logger.debug("clear {}", settings.entrySet());
-			}
-
-			if (opts.publicKey()) {
-				out.println(tos(opts.hex(), settings.getPublicKey()));
-				return;
-			}
-			if (opts.secretKey()) {
-				out.println(tos(opts.hex(), settings.getPrivateKey()));
-				return;
-			}
-			if (opts.id()) {
-				out.printf("%s\n", tos(opts.hex(), settings.getPublicKey()));
-			}
-
-			if (opts.mac()) {
-				for (String s : rest) {
-					byte[] data = s.getBytes(UTF_8);
-					byte[] signature = settings.sign(data);
-					out.printf("%s\n", tos(opts.hex(), signature));
-				}
-				return;
-			}
-
-			if (rest.isEmpty()) {
-				list(null, settings);
-			} else {
-				boolean set = false;
-				for (String s : rest) {
-					Matcher m = ASSIGNMENT.matcher(s);
-					logger.debug("try {}", s);
-					if (m.matches()) {
-						logger.debug("matches {} {} {}", s, m.group(1), m.group(2));
-						String key = m.group(1);
-						Glob instr = key == null ? Glob.ALL : new Glob(key);
-						List<String> select = settings.keySet()
-							.stream()
-							.filter(k -> instr.matches(k))
-							.collect(Collectors.toList());
-
-						String value = m.group(2);
-						if (value == null) {
-							logger.debug("list wildcard {} {} {}", instr, select, settings.keySet());
-							list(select, settings);
-						} else {
-							logger.debug("assignment 	");
-							settings.put(key, value);
-							set = true;
-						}
-					} else {
-						err.printf("Cannot assign %s\n", s);
-
-					}
-				}
-				if (set) {
-					logger.debug("saving");
-					settings.save();
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		logger.debug("settings {}", jpm.getSettings());
+		List<String> rest = opts._arguments();
+		Map<String, String> settings = jpm.getSettings();
+		if (opts.clear()) {
+			settings.clear();
+			logger.debug("clear {}", settings.entrySet());
 		}
-	}
 
-	private String tos(boolean hex, byte[] data) {
-		return hex ? Hex.toHexString(data) : Base64.encodeBase64(data);
+		if (rest.isEmpty()) {
+			list(null, settings);
+		} else {
+			boolean set = false;
+			for (String s : rest) {
+				Matcher m = ASSIGNMENT.matcher(s);
+				logger.debug("try {}", s);
+				if (m.matches()) {
+					logger.debug("matches {} {} {}", s, m.group(1), m.group(2));
+					String key = m.group(1);
+					Glob instr = key == null ? Glob.ALL : new Glob(key);
+					List<String> select = settings.keySet()
+						.stream()
+						.filter(k -> instr.matches(k))
+						.collect(Collectors.toList());
+
+					String value = m.group(2);
+					if (value == null) {
+						logger.debug("list wildcard {} {} {}", instr, select, settings.keySet());
+						list(select, settings);
+					} else {
+						logger.debug("assignment 	");
+						settings.put(key, value);
+						set = true;
+					}
+				} else {
+					err.printf("Cannot assign %s\n", s);
+
+				}
+			}
+			if (set) {
+				logger.debug("saving");
+				jpm.save();
+			}
+		}
 	}
 
 	private void list(Collection<String> keys, Map<String, String> map) {
@@ -873,11 +731,6 @@ public class Main extends ReporterAdapter {
 
 	@Description("Remove a command or a service from the system")
 	public void _remove(UninstallOptions opts) throws Exception {
-		if (!jpm.hasAccess()) {
-			error("No write acces, might require administrator or root privileges (sudo in *nix)");
-			return;
-		}
-
 		ArrayList<String> toDelete = new ArrayList<>();
 
 		ArrayList<String> names = new ArrayList<>();
@@ -921,19 +774,14 @@ public class Main extends ReporterAdapter {
 	/**
 	 * Show a list of candidates from a coordinate
 	 */
-	@Arguments(arg = "coordinate")
-	@Description("Print out the candidates from a coordinate specification. A coordinate is:\n\n"
-		+ "    coordinate \t0:\t1[groupId ':'] artifactId \n\t1[ '@' [ version ] ( '*' | '=' | '~' | '!')]\n"
-		+ "    '*'        \t0:\t1Version, if specified, is treated as required prefix of the actual version. Sees MASTER | STAGING | LOCKED\n"
-		+ "    '='        \t0:\t1Version, if specified, must match exactly. Sees MASTER\n"
-		+ "    '~'        \t0:\t1Version, if specified, is treated as required prefix of the actual version. Sees all phases\n"
-		+ "    '!'        \t0:\t1Version, if specified, is treated as required prefix of the actual version. Sees normally invisible phases")
-	interface CandidateOptions extends Options {
+	@Arguments(arg = "program")
+	@Description("Print out the revisions for a program specification (group:artifact)")
+	interface RevisionOptions extends Options {
 
 	}
 
-	@Description("List the candidates for a coordinate")
-	public void _candidates(CandidateOptions options) throws Exception {
+	@Description("List the revisions for a program GAV")
+	public void _revisions(RevisionOptions options) throws Exception {
 		List<String> arguments = options._arguments();
 		String gav = arguments.remove(0);
 		Result<List<String>> revisions = jpm.getRevisions(gav);
@@ -946,35 +794,70 @@ public class Main extends ReporterAdapter {
 	}
 
 	@Arguments(arg = {})
-	interface UseOptions extends Options {
-		@Description("Forget the current settings.")
-		boolean forget();
+	@Description("maintain the urls")
+	interface URLOptions extends Options {
+		boolean snapshot();
 
-		@Description("Save settings.")
-		boolean save();
+		String[] remove();
+
+		String[] add();
 	}
 
-	@Description("Manage the current setting of the home directory and the bin directory. These settings can be set with the initial options -g/--global, -u/--user, and -h/--home")
-	public void _use(UseOptions o) {
-		out.println("Home dir      " + jpm.getHomeDir());
-		out.println("Bin  dir      " + jpm.getBinDir());
-		if (o.forget()) {
-			settings.remove(JPM_CONFIG_BIN);
-			settings.remove(JPM_CONFIG_HOME);
-			settings.save();
-		} else if (o.save()) {
-			if (!jpm.getHomeDir()
-				.isDirectory()) {
-				error(
-					"The current home directory is not a JPM directory, init to initialize it, this will save the permanent settings to use that directory by default");
-				return;
+	@Description("maintain the urls")
+	public void _urls(URLOptions options) {
+		Map<String, String> settings = jpm.getSettings();
+		boolean donesomething = false;
+		String key = options.snapshot() ? JPM.SNAPSHOT_URLS : JPM.RELEASE_URLS;
+		String urls = settings.get(key);
+		ExtList<String> l = new ExtList<>(Strings.splitQuoted(urls));
+		if (options.remove() != null) {
+			for (String s : options.remove()) {
+				Glob glob = new Glob(s);
+				l.removeIf(ss -> glob.finds(ss) >= 0);
+				donesomething |= true;
 			}
-			settings.put(JPM_CONFIG_BIN, jpm.getBinDir()
-				.getAbsolutePath());
-			settings.put(JPM_CONFIG_HOME, jpm.getHomeDir()
-				.getAbsolutePath());
-			settings.save();
 		}
+		if (options.add() != null) {
+			for (String s : options.add()) {
+				List<String> split = Strings.split(s);
+				for (String ss : split)
+					try {
+						URL uri = new URL(ss);
+						l.add(uri.toString());
+						donesomething |= true;
+					} catch (MalformedURLException e) {
+						error("malformed url %s : %s", ss, e.getMessage());
+					}
+			}
+		}
+		if (donesomething) {
+			settings.put(key, Strings.join(l));
+			jpm.save();
+		}
+		out.println(Strings.join("\n", l));
+	}
+
+	@Description("Search the maven central database. Modifiers can be used to narrow the search.\n"
+		+ "\t1c:<name> – Search for class name\n" //
+		+ "\t1fc:<name> Search for fully qualified class name\n" //
+		+ "\t11:<sha> Search for a sha\n" //
+		+ "\t1g:<id> Search for the group id\n" //
+		+ "\t1a:<id> Search for the artifact id\n" //
+		+ "")
+	interface SearchOptions extends Options {
+		int from();
+
+		int pages();
+
+	}
+
+	public void _search(SearchOptions options) {
+		Result<List<String>> l = jpm.search(Strings.join(" ", options._arguments()), options.from(), options.pages());
+		if (l.isErr()) {
+			error(l.getMessage());
+			return;
+		}
+		out.println(Strings.join("\n", l.unwrap()));
 	}
 
 }
