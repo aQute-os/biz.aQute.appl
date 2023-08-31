@@ -220,7 +220,7 @@ class Windows extends PlatformImpl {
 
 		for (String p : homes) {
 			File javahome = new File(p);
-			JVM vm = getJVM(javahome);
+			JVM vm = getJVM0(javahome);
 			if (vm != null) {
 				vms.add(vm);
 			}

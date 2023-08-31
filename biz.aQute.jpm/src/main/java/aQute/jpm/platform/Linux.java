@@ -51,7 +51,7 @@ class Linux extends Unix {
 		String javaHome = System.getenv("JAVA_HOME");
 
 		if (javaHome != null) {
-			JVM jvm = getJVM(new File(javaHome));
+			JVM jvm = getJVM0(new File(javaHome));
 
 			if (jvm != null) {
 				vms.add(jvm);
@@ -87,7 +87,7 @@ class Linux extends Unix {
 	}
 
 	@Override
-	public JVM getJVM(File vmdir) {
+	public JVM getJVM0(File vmdir) {
 		if (!vmdir.isDirectory()) {
 			return null;
 		}

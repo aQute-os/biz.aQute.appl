@@ -67,7 +67,7 @@ class MacOS extends Unix {
 	}
 
 	@Override
-	public JVM getJVM(File vmdir) throws Exception {
+	public JVM getJVM0(File vmdir) throws Exception {
 		if (!vmdir.isDirectory()) {
 			return null;
 		}

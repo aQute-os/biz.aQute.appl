@@ -7,6 +7,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import aQute.bnd.exceptions.Exceptions;
 import aQute.bnd.version.MavenVersion;
 import aQute.jpm.api.JVM;
 import aQute.jpm.api.Platform;
@@ -72,6 +73,20 @@ public abstract class PlatformImpl implements Platform {
 		return getName();
 	}
 
+	@Override
+	public JVM getJVM(File dir) {
+		try {
+			JVM jvm = getJVM0(dir);
+			if (jvm == null)
+				return null;
+
+			jvm.platformVersion = MavenVersion.cleanupVersion(jvm.platformVersion);
+			return jvm;
+		} catch (Exception e) {
+			throw Exceptions.duck(e);
+		}
+	}
+
 	/**
 	 * <pre>
 	 * IMPLEMENTOR="Azul Systems, Inc."
@@ -86,7 +101,7 @@ public abstract class PlatformImpl implements Platform {
 	 * </pre>
 	 */
 
-	public JVM getJVM(File vmdir) throws Exception {
+	protected JVM getJVM0(File vmdir) throws Exception {
 		if (!vmdir.isDirectory()) {
 			return null;
 		}

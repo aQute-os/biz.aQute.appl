@@ -41,4 +41,6 @@ public interface Platform {
 	default void init() throws Exception {}
 
 	void report(Formatter formatter);
+
+	JVM getJVM(File dir);
 }
